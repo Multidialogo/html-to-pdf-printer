@@ -1,0 +1,5 @@
+# Ignore everything in vendor
+*
+
+# Allow .gitkeep files
+!.gitignore

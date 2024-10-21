@@ -35,3 +35,12 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=test
     command: "bash -c 'chmod +x move-vendors.sh; sh move-vendors.sh; rm -f move-vendors.sh; python3 -m unittest discover -s test'"
+
+  release:
+    build:
+      context: .
+      dockerfile: ./Docker/release.Dockerfile
+    image: html_to_pdf_printer
+    depends_on:
+      - app
+

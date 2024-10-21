@@ -1,12 +1,18 @@
 FROM html_to_pdf_printer_app
 
-RUN pip install -vvv --target=/app/vendor -r requirements.txt
+ENV FLASK_ENV=production
 
-RUN apt-get purge -y python3-pip python3-dev gcc g++ libgirepository1.0-dev \
+ENV PYTHONUNBUFFERED=1
+
+COPY ./requirements-release.txt .
+
+RUN pip install -vvv --target=/app/vendor -r requirements-release.txt
+
+RUN apt-get purge -y python3-pip python3-dev gcc g++ \
     && apt-get autoremove -y
 
-ENV FLASK_ENV="production"
+EXPOSE 5000
 
-EXPOSE 80
+# then expose 5000 as 80
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
 
-CMD ["exec", "python3", "src/app.py"]

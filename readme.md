@@ -66,6 +66,8 @@ docker compose run --rm app
 
 The request body should follow the JSON API format, structured as follows:
 
+
+```json
 {
   "data": {
     "attributes": {
@@ -74,12 +76,15 @@ The request body should follow the JSON API format, structured as follows:
     }
   }
 }
+```
+
 
 - htmlBody: A string containing the HTML content to be converted to PDF.
 - outputFilename (optional): A string specifying the name of the output PDF file. If not provided, a default filename will be used.
 
 #### Example Request Using curl
 
+```bash
 curl -X POST http://127.0.0.1:5000/convert \
 -H "Content-Type: application/json" \
 -d '{
@@ -90,6 +95,7 @@ curl -X POST http://127.0.0.1:5000/convert \
     }
   }
 }'
+```
 
 #### Response
 
@@ -106,12 +112,14 @@ The response will be a PDF file download containing the converted HTML.
 
 If there is an error during the conversion process, the API will respond with a JSON object structured in dot notation as follows:
 
+```json
 {
   "errors": {
     "title": "Error Title",
     "detail": "Error message describing the issue."
   }
 }
+```
 
 - errors.title: A string summarizing the error type.
 - errors.detail: A string providing a detailed description of the error.

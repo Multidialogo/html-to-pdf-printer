@@ -1,0 +1,5 @@
+data/
+vendor/
+vendor-test/
+src/__pycache__/
+test/__pycache__/

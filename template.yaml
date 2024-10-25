@@ -75,6 +75,9 @@ Resources:
                 Resource: '*'
 
   Function:
+    DependsOn:
+      - SecurityGroup
+      - FunctionRole
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${Application}-${Environment}'

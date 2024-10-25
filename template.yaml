@@ -28,13 +28,13 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !ImportValue multidialogo-produzione-vpc-VPC-id
+      VpcId: vpc-51f0be36
       GroupDescription: Enable VPC access to the lambda function.
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !ImportValue multidialogo-produzione-vpc-VpcCidr
+          CidrIp: 10.11.0.0/20
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443

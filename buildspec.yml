@@ -1,0 +1,24 @@
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    SAM_CLI_LINK: 'https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip'
+    SAM_CLI_PACKAGE_NAME: 'aws-sam-cli.zip'
+
+phases:
+  install:
+    run-as: root
+    on-failure: ABORT
+    runtime-versions:
+      python: 3.12
+    commands:
+      - yum install -y unzip
+      - wget -qO "${SAM_CLI_PACKAGE_NAME}" "${SAM_CLI_LINK}"
+      - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
+      - ./sam-installation/install
+      - sam --version
+  build:
+    on-failure: ABORT
+    commands:
+      - sam build --use-container

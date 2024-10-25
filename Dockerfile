@@ -20,4 +20,4 @@ RUN dnf install -y fontconfig freetype libX11 libXext libXrender libjpeg libpng 
         else rm test_* requirements*; \
     fi
 
-CMD [ "HtmlToPdf.handler" ]
+CMD [ "app.handler" ]

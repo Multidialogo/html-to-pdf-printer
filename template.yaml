@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+
+  Application:
+    Type: String
+
+  Environment:
+    Type: String
+
+  MultiPayGateEndpoint:
+    Type: String
+
+  Memory:
+    Type: Number
+    Default: 128
+
+  Role:
+    Type: String
+
+  Subnets:
+    Type: CommaDelimitedList
+
+  Timeout:
+    Type: Number
+    Default: 5
+
+Resources:
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue multidialogo-produzione-vpc-VPC-id
+      GroupDescription: Enable VPC access to the lambda function.
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !ImportValue multidialogo-produzione-vpc-VpcCidr
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupClass: STANDARD
+      RetentionInDays: 30
+
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 345600
+
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DLQPermission
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt DeadLetterQueue.Arn
+        - PolicyName: NetworkInterfacePermission
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:Describe*
+                  - ec2:CreateNetworkInterface*
+                  - ec2:DeleteNetworkInterface*
+                  - ec2:DetachNetworkInterface
+                  - ec2:ModifyNetworkInterface*
+                Resource: '*'
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      DeadLetterQueue:
+        TargetArn: !GetAtt DeadLetterQueue.Arn
+        Type: SQS
+      Environment:
+        Variables:
+          MULTIPAY_GATE_ENDPOINT: !Ref MultiPayGateEndpoint
+          DLQ_URL: !GetAtt DeadLetterQueue.QueueUrl
+      FunctionName: !Sub '${Application}-${Role}-${Environment}'
+      ImageConfig:
+        Command: ["app.handler"]
+      Handler: app.handler
+      LoggingConfig:
+        LogGroup: !Ref LogGroup
+      MemorySize: !Ref Memory
+      PackageType: Image
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.12
+      Timeout: !Ref Timeout
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt SecurityGroup.GroupId
+        SubnetIds: !Ref Subnets
+    Metadata:
+      DockerTag: python:3.12-v1
+      DockerContext: /
+      Dockerfile: Dockerfile
+
+Outputs:
+
+  FunctionName:
+    Description: The lambda function name.
+    Value: !Ref Function
+    Export:
+      Name: !Sub '${Environment}-${Application}-${Role}-function-name'
+
+  FunctionArn:
+    Description: The lambda function arn.
+    Value: !GetAtt Function.Arn
+    Export:
+      Name: !Sub '${Environment}-${Application}-${Role}-function-arn'

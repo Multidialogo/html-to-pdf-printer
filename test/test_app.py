@@ -8,7 +8,7 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         """Set up the test client and expectations directory."""
         self.app = app.test_client()
         self.app.testing = True
-        self.expectations_dir = os.path.join(os.path.dirname(__file__), 'expectations')
+        self.expectations_dir = os.path.join(os.path.dirname(__file__))
         os.makedirs(self.expectations_dir, exist_ok=True)
 
     def test_convert_with_styles(self):
@@ -16,7 +16,7 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         html_content = """
         <html>
         <head>
-            <link rel="stylesheet" type="text/css" href="/static/styles.css">
+            <link rel="stylesheet" type="text/css" href="http://127.0.0.1:5000/static/styles.css">
             <style>
                 h2 { color: green; text-align: left; }
             </style>
@@ -38,7 +38,8 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
             data=json.dumps({
                 "data": {
                     "attributes": {
-                        "htmlBody": html_content
+                        "htmlBody": html_content,
+                        "outputFilename": "example.pdf"
                     }
                 }
             })

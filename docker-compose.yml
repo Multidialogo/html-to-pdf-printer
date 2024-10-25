@@ -1,46 +1,51 @@
 services:
-  app:
-    container_name: html_to_pdf_printer_app
+#  app:
+#    container_name: html_to_pdf_printer_app
+#    build:
+#      context: .
+#      dockerfile: ./Docker/Dockerfile
+#    image: html_to_pdf_printer_app
+#    volumes:
+#      - ./src:/app/src
+#      - ./data:/app/data
+#      - ./vendor:/app/vendor
+#      - ./Docker/move-vendors.sh:/app/move-vendors.sh
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - FLASK_ENV=development
+#    ports:
+#      - "5000:5000"
+#    command: "bash -c 'chmod +x move-vendors.sh; sh move-vendors.sh; python3 src/app.py'"
+#
+#
+#  test:
+#    container_name: html_to_pdf_printer_test
+#    build:
+#      context: .
+#      dockerfile: ./Docker/test.Dockerfile
+#    image: html_to_pdf_printer_test
+#    depends_on:
+#      - app
+#    volumes:
+#      - ./src:/app/src
+#      - ./test:/app/test
+#      - ./vendor-test:/app/vendor
+#      - ./Docker/move-vendors.sh:/app/move-vendors.sh
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - FLASK_ENV=test
+#    command: "bash -c 'cp -r /app/vendor-tmp/. /app/vendor; python3 -m unittest discover -s test'"
+#
+#  release:
+#    build:
+#      context: .
+#      dockerfile: ./Docker/release.Dockerfile
+#    image: html_to_pdf_printer
+#    depends_on:
+#      - app
+
+  app2:
     build:
-      context: .
-      dockerfile: ./Docker/Dockerfile
-    image: html_to_pdf_printer_app
-    volumes:
-      - ./src:/app/src
-      - ./data:/app/data
-      - ./vendor:/app/vendor
-      - ./Docker/move-vendors.sh:/app/move-vendors.sh
-    environment:
-      - PYTHONUNBUFFERED=1
-      - FLASK_ENV=development
-    ports:
-      - "127.0.0.1:5000:5000"
-    command: "bash -c 'chmod +x move-vendors.sh; sh move-vendors.sh; python3 src/app.py'"
-
-
-  test:
-    container_name: html_to_pdf_printer_test
-    build:
-      context: .
-      dockerfile: ./Docker/test.Dockerfile
-    image: html_to_pdf_printer_test
-    depends_on:
-      - app
-    volumes:
-      - ./src:/app/src
-      - ./test:/app/test
-      - ./vendor-test:/app/vendor
-      - ./Docker/move-vendors.sh:/app/move-vendors.sh
-    environment:
-      - PYTHONUNBUFFERED=1
-      - FLASK_ENV=test
-    command: "bash -c 'chmod +x move-vendors.sh; sh move-vendors.sh; rm -f move-vendors.sh; python3 -m unittest discover -s test'"
-
-  release:
-    build:
-      context: .
-      dockerfile: ./Docker/release.Dockerfile
-    image: html_to_pdf_printer
-    depends_on:
-      - app
-
+      args:
+        DEV: true
+    entrypoint: [ "sh" ]

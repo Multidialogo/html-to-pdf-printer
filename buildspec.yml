@@ -23,4 +23,5 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - sam build --image-repository 823598220965.dkr.ecr.eu-west-1.amazonaws.com/sam
+      - sam build
+      - sam deploy --image-repository 823598220965.dkr.ecr.eu-west-1.amazonaws.com/sam

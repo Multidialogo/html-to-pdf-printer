@@ -5,26 +5,23 @@ Parameters:
 
   Application:
     Type: String
+    Default: html-to-pdf-printer
 
   Environment:
     Type: String
-
-  MultiPayGateEndpoint:
-    Type: String
+    Default: stage
 
   Memory:
     Type: Number
     Default: 128
 
-  Role:
-    Type: String
-
   Subnets:
     Type: CommaDelimitedList
+    Default: subnet-eb8600b0,subnet-8393e9e4
 
   Timeout:
     Type: Number
-    Default: 5
+    Default: 900
 
 Resources:
 
@@ -97,11 +94,7 @@ Resources:
       DeadLetterQueue:
         TargetArn: !GetAtt DeadLetterQueue.Arn
         Type: SQS
-      Environment:
-        Variables:
-          MULTIPAY_GATE_ENDPOINT: !Ref MultiPayGateEndpoint
-          DLQ_URL: !GetAtt DeadLetterQueue.QueueUrl
-      FunctionName: !Sub '${Application}-${Role}-${Environment}'
+      FunctionName: !Sub '${Application}-${Environment}'
       ImageConfig:
         Command: ["app.handler"]
       Handler: app.handler
@@ -127,10 +120,10 @@ Outputs:
     Description: The lambda function name.
     Value: !Ref Function
     Export:
-      Name: !Sub '${Environment}-${Application}-${Role}-function-name'
+      Name: !Sub '${Environment}-${Application}-function-name'
 
   FunctionArn:
     Description: The lambda function arn.
     Value: !GetAtt Function.Arn
     Export:
-      Name: !Sub '${Environment}-${Application}-${Role}-function-arn'
+      Name: !Sub '${Environment}-${Application}-function-arn'

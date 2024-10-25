@@ -118,7 +118,7 @@ Resources:
         SubnetIds: !Ref Subnets
     Metadata:
       DockerTag: v1
-      DockerContext: /
+      DockerContext: ./src/app
       Dockerfile: Dockerfile
 
 Outputs:

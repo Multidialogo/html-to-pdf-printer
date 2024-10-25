@@ -117,7 +117,7 @@ Resources:
           - !GetAtt SecurityGroup.GroupId
         SubnetIds: !Ref Subnets
     Metadata:
-      DockerTag: python:3.12-v1
+      DockerTag: v1
       DockerContext: /
       Dockerfile: Dockerfile
 

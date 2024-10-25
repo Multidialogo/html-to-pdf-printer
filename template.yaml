@@ -21,7 +21,7 @@ Parameters:
 
   Timeout:
     Type: Number
-    Default: 30
+    Default: 900
 
 Resources:
 

@@ -80,6 +80,12 @@ Resources:
       - FunctionRole
     Type: AWS::Serverless::Function
     Properties:
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
       FunctionName: !Sub '${Application}-${Environment}'
       ImageConfig:
         Command: ["app.handler"]

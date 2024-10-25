@@ -24,4 +24,4 @@ phases:
     on-failure: ABORT
     commands:
       - sam build
-      - sam deploy --image-repository 823598220965.dkr.ecr.eu-west-1.amazonaws.com/sam --stack-name html-to-pdf-printer-stage --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --debug
+      - sam deploy --image-repository 823598220965.dkr.ecr.eu-west-1.amazonaws.com/sam --stack-name html-to-pdf-printer-stage --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --confirm-changeset true

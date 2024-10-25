@@ -77,7 +77,6 @@ Resources:
   Function:
     Type: AWS::Serverless::Function
     Properties:
-#      CodeUri: src/
       FunctionName: !Sub '${Application}-${Environment}'
       ImageConfig:
         Command: ["app.handler"]
@@ -87,29 +86,12 @@ Resources:
       MemorySize: !Ref Memory
       PackageType: Image
       Role: !GetAtt FunctionRole.Arn
-      Runtime: python3.12
       Timeout: !Ref Timeout
       VpcConfig:
         SecurityGroupIds:
           - !GetAtt SecurityGroup.GroupId
-        SubnetIds:
-          - subnet-eb8600b0
-          - subnet-8393e9e4
+        SubnetIds: !Ref Subnets
     Metadata:
       DockerTag: v1
       DockerContext: ./
       Dockerfile: Dockerfile
-
-#Outputs:
-#
-#  FunctionName:
-#    Description: The lambda function name.
-#    Value: !Ref Function
-#    Export:
-#      Name: !Sub '${Environment}-${Application}-function-name'
-#
-#  FunctionArn:
-#    Description: The lambda function arn.
-#    Value: !GetAtt Function.Arn
-#    Export:
-#      Name: !Sub '${Environment}-${Application}-function-arn'

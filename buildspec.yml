@@ -31,4 +31,4 @@ phases:
         Memory=$MEMORY
         Subnets=$SUBNETS
         Timeout=$TIMEOUT
-      - sam deploy --image-repository $IMAGE_REPOSITORY --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --no-confirm-changeset
+      - sam deploy --image-repository $SAM_REGISTRY --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --no-confirm-changeset

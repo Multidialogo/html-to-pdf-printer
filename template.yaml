@@ -3,25 +3,20 @@ Transform: AWS::Serverless-2016-10-31
 
 Parameters:
 
-  Application:
+  FunctionName:
     Type: String
-    Default: html-to-pdf-printer
 
   Environment:
     Type: String
-    Default: stage
 
   Memory:
     Type: Number
-    Default: 128
 
   Subnets:
     Type: CommaDelimitedList
-    Default: subnet-eb8600b0,subnet-8393e9e4
 
   Timeout:
     Type: Number
-    Default: 900
 
 Resources:
 
@@ -80,7 +75,7 @@ Resources:
       - FunctionRole
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Application}-${Environment}'
+      FunctionName: !Sub '${FunctionName}-${Environment}'
       LoggingConfig:
         LogGroup: !Ref LogGroup
       MemorySize: !Ref Memory

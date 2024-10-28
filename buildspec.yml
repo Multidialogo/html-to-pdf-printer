@@ -23,5 +23,11 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - sam build
-      - sam deploy --image-repository 823598220965.dkr.ecr.eu-west-1.amazonaws.com/sam --stack-name lambda-function-html-to-pdf-printer-stage --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --no-confirm-changeset
+      - >
+        sam build --parameter-overrides
+        FunctionName=$FUNCTION_NAME
+        Environment=$ENVIRONMENT
+        Memory=$MEMORY
+        Subnets-$SUBNETS
+        Timeout=$TIMEOUT
+      - sam deploy --image-repository $IMAGE_REPOSITORY --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --no-confirm-changeset

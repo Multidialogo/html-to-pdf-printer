@@ -28,6 +28,6 @@ phases:
         FunctionName=$FUNCTION_NAME
         Environment=$ENVIRONMENT
         Memory=$MEMORY
-        Subnets-$SUBNETS
+        Subnets=$SUBNETS
         Timeout=$TIMEOUT
       - sam deploy --image-repository $IMAGE_REPOSITORY --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM --fail-on-empty-changeset false --no-confirm-changeset

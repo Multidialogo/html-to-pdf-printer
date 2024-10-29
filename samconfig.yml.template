@@ -4,8 +4,8 @@ default:
   deploy:
     parameters:
       image_repository: ${SAM_REGISTRY}
-      tags: application=multipay-gate role=api-controller environment=stage
-      stack_name: $STACK_NAME
+      tags: application=${FUNCTION_NAME} environment=${ENVIRONMENT}
+      stack_name: ${STACK_NAME}
       confirm_changeset: false
       capabilities: CAPABILITY_NAMED_IAM
       fail_on_empty_changeset: false

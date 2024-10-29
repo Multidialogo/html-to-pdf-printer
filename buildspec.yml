@@ -23,15 +23,7 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - env
-      - envsubst < parameters.json.template > parameters.json
+      - envsubst < samconfig.yml.template > samconfig.yml
       - cat parameters.json
       - sam build
-      - >
-        sam deploy 
-        --image-repository $SAM_REGISTRY
-        --stack-name $STACK_NAME
-        --parameter-overrides file://parameters.json
-        --capabilities CAPABILITY_NAMED_IAM 
-        --fail-on-empty-changeset false 
-        --no-confirm-changeset
+      - sam deploy

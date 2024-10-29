@@ -24,6 +24,6 @@ phases:
     on-failure: ABORT
     commands:
       - envsubst < samconfig.yml.template > samconfig.yml
-      - cat parameters.json
+      - cat samconfig.yml
       - sam build
       - sam deploy

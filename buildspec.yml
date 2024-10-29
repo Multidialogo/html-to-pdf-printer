@@ -24,7 +24,8 @@ phases:
     on-failure: ABORT
     commands:
       - env
-      - envsubst
+      - envsubst < parameters.json.template > parameters.json
+      - cat parameters.json
       - sam build
       - >
         sam deploy 

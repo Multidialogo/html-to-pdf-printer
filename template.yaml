@@ -10,13 +10,13 @@ Parameters:
     Type: String
 
   Memory:
-    Type: Number
+    Type: String
 
   Subnets:
     Type: CommaDelimitedList
 
   Timeout:
-    Type: Number
+    Type: String
 
 Resources:
 

@@ -15,7 +15,7 @@ phases:
     commands:
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=overlay&
       - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
-      - yum install -y unzip jinja2 jinja2-cli
+      - yum install -y unzip
       - wget -qO "${SAM_CLI_PACKAGE_NAME}" "${SAM_CLI_LINK}"
       - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
       - ./sam-installation/install

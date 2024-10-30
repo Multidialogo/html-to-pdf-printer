@@ -14,7 +14,7 @@ ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
 
 ARG DEV=false
 RUN if [ -z "$EFS_MOUNT_PATH" ]; then \
-      echo -e '\033[0;31mError: environment variable EFS_MOUNT_PATH not provided.\033[0m' && exit 1; \
+      echo -e '\033[0;31mError: environment variable EFS_MOUNT_PATH not provided.\033[0m' && exit 4; \
     fi && \
     dnf install -y fontconfig freetype libX11 libXext libXrender libjpeg libpng openssl xorg-x11-fonts-75dpi xorg-x11-fonts-Type1 && \
     rpm -ivh /wkhtmltopdf.rpm && \

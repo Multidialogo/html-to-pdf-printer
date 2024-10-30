@@ -18,6 +18,12 @@ Parameters:
   Memory:
     Type: String
 
+  RestApiId:
+    Type: String
+
+  RootResourceId:
+    Type: String
+
   Subnets:
     Type: CommaDelimitedList
 
@@ -47,7 +53,7 @@ Resources:
         Gid: 1000
       AccessPointTags:
         - Key: Name
-          Value: !Ref FunctionName
+          Value: !Sub '${FunctionName}-${Environment}'
         - Key: path
           Value: /
 
@@ -148,3 +154,23 @@ Resources:
           - IsProduction
           - 'false'
           - 'true'
+
+  Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref RootResourceId
+      PathPart: 'generate'
+      RestApiId: !Ref RestApiId
+
+  Method:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: true
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations'
+      ResourceId: !Ref Resource
+      RestApiId: !Ref RestApiId

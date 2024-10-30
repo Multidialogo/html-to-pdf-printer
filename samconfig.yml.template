@@ -15,6 +15,8 @@ default:
         - FunctionName=${FUNCTION_NAME}
         - Environment=${ENVIRONMENT}
         - Memory=${MEMORY}
+        - RestApiId=${REST_API_ID}
+        - RootResourceId=${ROOT_RESOURCE_ID}
         - Subnets=${SUBNETS}
         - Timeout=${TIMEOUT}
         - VPCCidr=${VPC_CIDR}

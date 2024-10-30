@@ -3,6 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 
 Parameters:
 
+  EFSMountPath:
+    Type: String
+
+  FileSystemId:
+    Type: String
+
   FunctionName:
     Type: String
 
@@ -18,22 +24,45 @@ Parameters:
   Timeout:
     Type: String
 
+  VPCCidr:
+    Type: String
+
+  VPCID:
+    Type: String
+
 Resources:
+
+  AccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref FileSystemId
+      PosixUser:
+        Uid: 1000
+        Gid: 1000
+      AccessPointTags:
+        - Key: Name
+          Value: !Ref FunctionName
+        - Key: path
+          Value: /
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: vpc-51f0be36
+      VpcId: !Ref VPCID
       GroupDescription: Enable VPC access to the lambda function.
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 10.11.0.0/20
+          CidrIp: !Ref VPCCidr
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !Ref VPCCidr
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -73,8 +102,15 @@ Resources:
     DependsOn:
       - SecurityGroup
       - FunctionRole
+      - AccessPoint
     Type: AWS::Serverless::Function
     Properties:
+      Environment:
+        Variables:
+          EFS_MOUNT_PATH: !Ref EFSMountPath
+      FileSystemConfigs:
+        - Arn: !GetAtt AccessPoint.Arn
+          LocalMountPath: !Ref EFSMountPath
       FunctionName: !Sub '${FunctionName}-${Environment}'
       LoggingConfig:
         LogGroup: !Ref LogGroup
@@ -87,6 +123,6 @@ Resources:
           - !GetAtt SecurityGroup.GroupId
         SubnetIds: !Ref Subnets
     Metadata:
-      DockerTag: v1
+      DockerTag: !Ref Environment
       DockerContext: ./
       Dockerfile: Dockerfile

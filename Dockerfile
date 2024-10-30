@@ -1,8 +1,5 @@
 FROM public.ecr.aws/lambda/python:3.12
 
-COPY requirements.txt ${LAMBDA_TASK_ROOT}
-COPY requirements.dev.txt ${LAMBDA_TASK_ROOT}
-
 COPY src $LAMBDA_TASK_ROOT
 
 ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"

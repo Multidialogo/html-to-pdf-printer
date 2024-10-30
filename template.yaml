@@ -30,6 +30,12 @@ Parameters:
   VPCID:
     Type: String
 
+Conditions:
+
+  IsProduction: !Equals
+    - !Ref Environment
+    - prod
+
 Resources:
 
   AccessPoint:
@@ -137,3 +143,8 @@ Resources:
       DockerTag: !Ref Environment
       DockerContext: ./
       Dockerfile: Dockerfile
+      DockerBuildArgs:
+        DEV: !If
+          - IsProduction
+          - false
+          - true

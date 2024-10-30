@@ -1,0 +1,7 @@
+services:
+  app:
+    build:
+      args:
+        DEV: true
+        EFS_MOUNT_PATH: /test
+    entrypoint: [ "/var/task/entrypoint.dev.sh" ]

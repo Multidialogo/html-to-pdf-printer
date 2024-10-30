@@ -146,5 +146,5 @@ Resources:
       DockerBuildArgs:
         DEV: !If
           - IsProduction
-          - false
-          - true
+          - 'false'
+          - 'true'

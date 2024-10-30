@@ -1,7 +1,7 @@
 version: 0.1
 
 default:
-  deploy:
+  global:
     parameters:
       image_repository: ${SAM_REGISTRY}
       tags: application=${FUNCTION_NAME} environment=${ENVIRONMENT}

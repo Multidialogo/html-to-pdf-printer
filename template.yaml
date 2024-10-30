@@ -160,7 +160,7 @@ Resources:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !Ref RootResourceId
-      PathPart: 'generate'
+      PathPart: 'download'
       RestApiId: !Ref RestApiId
 
   Method:
@@ -168,7 +168,7 @@ Resources:
     Properties:
       ApiKeyRequired: true
       AuthorizationType: NONE
-      HttpMethod: ANY
+      HttpMethod: POST
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY

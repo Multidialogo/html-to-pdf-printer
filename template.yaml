@@ -150,6 +150,7 @@ Resources:
       DockerContext: ./
       Dockerfile: Dockerfile
       DockerBuildArgs:
+        EFS_MOUNT_PATH: !Ref EFSMountPath
         DEV: !If
           - IsProduction
           - 'false'

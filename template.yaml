@@ -227,25 +227,26 @@ Resources:
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref RestApiId
+      StageName: !Ref Environment
 
-  Stage:
-    DependsOn:
-      - Deployment
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      DeploymentId: !Ref Deployment
-      RestApiId: !Ref RestApiId
+#  Stage:
+#    DependsOn:
+#      - Deployment
+#    Type: AWS::ApiGateway::Stage
+#    Properties:
+#      DeploymentId: !Ref Deployment
+#      RestApiId: !Ref RestApiId
 
   BasePathMapping:
     DependsOn:
       - DomainName
-      - Stage
+      - Deployment
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
       BasePath: /
       DomainName: !Ref DomainName
       RestApiId: !Ref RestApiId
-      Stage: !Ref Stage
+      Stage: !Ref Environment
 
   ApiKey:
     Type: AWS::ApiGateway::ApiKey

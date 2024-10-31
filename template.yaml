@@ -255,13 +255,11 @@ Resources:
       Name: !Sub '${FunctionName}-${Environment}'
 
   UsagePlan:
-    DependsOn:
-      - Stage
     Type: AWS::ApiGateway::UsagePlan
     Properties:
       ApiStages:
         - ApiId: !Ref RestApiId
-          Stage: !Ref Stage
+          Stage: !Ref Environment
       UsagePlanName: !Sub '${FunctionName}-${Environment}'
 
   UsagePlanKey:

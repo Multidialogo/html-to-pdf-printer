@@ -3,6 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 
 Parameters:
 
+  Domain:
+    Type: String
+
+  HostedZoneName:
+    Type: String
+
   EFSMountPath:
     Type: String
 
@@ -164,6 +170,8 @@ Resources:
       RestApiId: !Ref RestApiId
 
   Method:
+    DependsOn:
+      - Function
     Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: true
@@ -175,3 +183,92 @@ Resources:
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations'
       ResourceId: !Ref Resource
       RestApiId: !Ref RestApiId
+
+  Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt Function.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/*/*'
+
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Sub '${HostedZoneName}.${Domain}'
+      VPCs:
+        - VPCId: !Ref VPCID
+          VPCRegion: !Ref AWS::Region
+
+  Certificate:
+    DependsOn:
+      - HostedZone
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub '${HostedZoneName}-${Environment}.${Domain}'
+      DomainValidationOptions:
+        - DomainName: !Sub '${HostedZoneName}-${Environment}.${Domain}'
+          HostedZoneId: !Ref HostedZone
+      KeyAlgorithm: RSA_2048
+      ValidationMethod: DNS
+
+  DomainName:
+    DependsOn:
+      - Certificate
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub '${HostedZoneName}.${Domain}'
+      EndpointConfiguration:
+        Types:
+          - PRIVATE
+      RegionalCertificateArn: !Ref Certificate
+
+  Deployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref RestApiId
+
+  Stage:
+    DependsOn:
+      - Deployment
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref Deployment
+      RestApiId: !Ref RestApiId
+
+  BasePathMapping:
+    DependsOn:
+      - DomainName
+      - Stage
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      BasePath: /
+      DomainName: !Ref DomainName
+      RestApiId: !Ref RestApiId
+      Stage: !Ref Stage
+
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Enabled: true
+      Name: !Sub '${FunctionName}-${Environment}'
+
+  UsagePlan:
+    DependsOn:
+      - Stage
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+        - ApiId: !Ref RestApiId
+          Stage: !Ref Stage
+      UsagePlanName: !Sub '${FunctionName}-${Environment}'
+
+  UsagePlanKey:
+    DependsOn:
+      - UsagePlan
+      - ApiKey
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan

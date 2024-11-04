@@ -209,16 +209,28 @@ Resources:
       KeyAlgorithm: RSA_2048
       ValidationMethod: DNS
 
-  DomainName:
-    DependsOn:
-      - Certificate
-    Type: AWS::ApiGateway::DomainName
-    Properties:
-      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-      EndpointConfiguration:
-        Types:
-          - PRIVATE
-      RegionalCertificateArn: !Ref Certificate
+#  DomainName:
+#    DependsOn:
+#      - Certificate
+#    Type: AWS::ApiGateway::DomainName
+#    Properties:
+#      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
+#      EndpointConfiguration:
+#        Types:
+#          - PRIVATE
+#      RegionalCertificateArn: !Ref Certificate
+
+#  RecordSet:
+#    DependsOn:
+#      - DomainName
+#    Type: AWS::Route53::RecordSet
+#    Properties:
+#      Name: !Sub '${FunctionName}-${Environment}.${Domain}'
+#      AliasTarget:
+#        DNSName: !GetAtt DomainName.RegionalDomainName
+#        HostedZoneId: !GetAtt DomainName.RegionalHostedZoneId
+#      HostedZoneId: !Ref HostedZone
+#      Type: A
 
   Deployment:
     DependsOn:
@@ -236,16 +248,16 @@ Resources:
       DeploymentId: !Ref Deployment
       RestApiId: !Ref RestApiId
 
-  BasePathMapping:
-    DependsOn:
-      - DomainName
-      - Deployment
-    Type: AWS::ApiGateway::BasePathMapping
-    Properties:
-      BasePath: /
-      DomainName: !Ref DomainName
-      RestApiId: !Ref RestApiId
-      Stage: !Ref Environment
+#  BasePathMapping:
+#    DependsOn:
+#      - DomainName
+#      - Deployment
+#    Type: AWS::ApiGateway::BasePathMapping
+#    Properties:
+#      BasePath: /
+#      DomainName: !Ref DomainName
+#      RestApiId: !Ref RestApiId
+#      Stage: !Ref Environment
 
   ApiKey:
     Type: AWS::ApiGateway::ApiKey

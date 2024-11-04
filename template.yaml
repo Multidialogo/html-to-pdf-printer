@@ -197,32 +197,7 @@ Resources:
         - VPCId: !Ref VPCID
           VPCRegion: !Ref AWS::Region
 
-  Certificate:
-    DependsOn:
-      - HostedZone
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-      DomainValidationOptions:
-        - DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-          HostedZoneId: !Ref HostedZone
-      KeyAlgorithm: RSA_2048
-      ValidationMethod: DNS
-
-#  DomainName:
-#    DependsOn:
-#      - Certificate
-#    Type: AWS::ApiGateway::DomainName
-#    Properties:
-#      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-#      EndpointConfiguration:
-#        Types:
-#          - PRIVATE
-#      RegionalCertificateArn: !Ref Certificate
-
 #  RecordSet:
-#    DependsOn:
-#      - DomainName
 #    Type: AWS::Route53::RecordSet
 #    Properties:
 #      Name: !Sub '${FunctionName}-${Environment}.${Domain}'
@@ -247,17 +222,6 @@ Resources:
     Properties:
       DeploymentId: !Ref Deployment
       RestApiId: !Ref RestApiId
-
-#  BasePathMapping:
-#    DependsOn:
-#      - DomainName
-#      - Deployment
-#    Type: AWS::ApiGateway::BasePathMapping
-#    Properties:
-#      BasePath: /
-#      DomainName: !Ref DomainName
-#      RestApiId: !Ref RestApiId
-#      Stage: !Ref Environment
 
   ApiKey:
     Type: AWS::ApiGateway::ApiKey

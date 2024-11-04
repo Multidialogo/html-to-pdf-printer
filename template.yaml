@@ -229,13 +229,13 @@ Resources:
       RestApiId: !Ref RestApiId
       StageName: !Ref Environment
 
-#  Stage:
-#    DependsOn:
-#      - Deployment
-#    Type: AWS::ApiGateway::Stage
-#    Properties:
-#      DeploymentId: !Ref Deployment
-#      RestApiId: !Ref RestApiId
+  Stage:
+    DependsOn:
+      - Deployment
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref Deployment
+      RestApiId: !Ref RestApiId
 
   BasePathMapping:
     DependsOn:
@@ -266,6 +266,7 @@ Resources:
     DependsOn:
       - UsagePlan
       - ApiKey
+      - Stage
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !Ref ApiKey

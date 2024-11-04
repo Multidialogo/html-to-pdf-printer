@@ -197,28 +197,28 @@ Resources:
         - VPCId: !Ref VPCID
           VPCRegion: !Ref AWS::Region
 
-  Certificate:
-    DependsOn:
-      - HostedZone
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-      DomainValidationOptions:
-        - DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
-          HostedZoneId: !Ref HostedZone
-      KeyAlgorithm: RSA_2048
-      ValidationMethod: DNS
+#  Certificate:
+#    DependsOn:
+#      - HostedZone
+#    Type: AWS::CertificateManager::Certificate
+#    Properties:
+#      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
+#      DomainValidationOptions:
+#        - DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
+#          HostedZoneId: !Ref HostedZone
+#      KeyAlgorithm: RSA_2048
+#      ValidationMethod: DNS
 
-  DomainName:
-    DependsOn:
-      - Certificate
-    Type: AWS::ApiGateway::DomainName
-    Properties:
-      DomainName: !Sub '${FunctionName}.${Domain}'
-      EndpointConfiguration:
-        Types:
-          - PRIVATE
-      RegionalCertificateArn: !Ref Certificate
+#  DomainName:
+#    DependsOn:
+#      - Certificate
+#    Type: AWS::ApiGateway::DomainName
+#    Properties:
+#      DomainName: !Sub '${FunctionName}.${Domain}'
+#      EndpointConfiguration:
+#        Types:
+#          - PRIVATE
+#      RegionalCertificateArn: !Ref Certificate
 
   Deployment:
     Type: AWS::ApiGateway::Deployment
@@ -234,16 +234,16 @@ Resources:
       DeploymentId: !Ref Deployment
       RestApiId: !Ref RestApiId
 
-  BasePathMapping:
-    DependsOn:
-      - DomainName
-      - Deployment
-    Type: AWS::ApiGateway::BasePathMapping
-    Properties:
-      BasePath: /
-      DomainName: !Ref DomainName
-      RestApiId: !Ref RestApiId
-      Stage: !Ref Environment
+#  BasePathMapping:
+#    DependsOn:
+#      - DomainName
+#      - Deployment
+#    Type: AWS::ApiGateway::BasePathMapping
+#    Properties:
+#      BasePath: /
+#      DomainName: !Ref DomainName
+#      RestApiId: !Ref RestApiId
+#      Stage: !Ref Environment
 
   ApiKey:
     Type: AWS::ApiGateway::ApiKey

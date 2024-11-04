@@ -6,9 +6,6 @@ Parameters:
   Domain:
     Type: String
 
-  HostedZoneName:
-    Type: String
-
   EFSMountPath:
     Type: String
 
@@ -195,7 +192,7 @@ Resources:
   HostedZone:
     Type: AWS::Route53::HostedZone
     Properties:
-      Name: !Sub '${HostedZoneName}.${Domain}'
+      Name: !Sub '${FunctionName}.${Domain}'
       VPCs:
         - VPCId: !Ref VPCID
           VPCRegion: !Ref AWS::Region
@@ -205,9 +202,9 @@ Resources:
       - HostedZone
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Sub '${HostedZoneName}-${Environment}.${Domain}'
+      DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
       DomainValidationOptions:
-        - DomainName: !Sub '${HostedZoneName}-${Environment}.${Domain}'
+        - DomainName: !Sub '${FunctionName}-${Environment}.${Domain}'
           HostedZoneId: !Ref HostedZone
       KeyAlgorithm: RSA_2048
       ValidationMethod: DNS
@@ -217,7 +214,7 @@ Resources:
       - Certificate
     Type: AWS::ApiGateway::DomainName
     Properties:
-      DomainName: !Sub '${HostedZoneName}.${Domain}'
+      DomainName: !Sub '${FunctionName}.${Domain}'
       EndpointConfiguration:
         Types:
           - PRIVATE

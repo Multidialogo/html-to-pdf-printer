@@ -221,6 +221,8 @@ Resources:
       RegionalCertificateArn: !Ref Certificate
 
   Deployment:
+    DependsOn:
+      - Method
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref RestApiId

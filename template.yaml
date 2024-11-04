@@ -3,6 +3,15 @@ Transform: AWS::Serverless-2016-10-31
 
 Parameters:
 
+  HostedZoneId:
+    Type: String
+
+  ALBDNSName:
+    Type: String
+
+  ALBHostedZoneId:
+    Type: String
+
   Domain:
     Type: String
 
@@ -189,23 +198,15 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/*/*'
 
-  HostedZone:
-    Type: AWS::Route53::HostedZone
+  RecordSet:
+    Type: AWS::Route53::RecordSet
     Properties:
       Name: !Sub '${FunctionName}-${Environment}.${Domain}'
-      VPCs:
-        - VPCId: !Ref VPCID
-          VPCRegion: !Ref AWS::Region
-
-#  RecordSet:
-#    Type: AWS::Route53::RecordSet
-#    Properties:
-#      Name: !Sub '${FunctionName}-${Environment}.${Domain}'
-#      AliasTarget:
-#        DNSName: !GetAtt DomainName.RegionalDomainName
-#        HostedZoneId: !GetAtt DomainName.RegionalHostedZoneId
-#      HostedZoneId: !Ref HostedZone
-#      Type: A
+      AliasTarget:
+        DNSName: !Ref ALBDNSName
+        HostedZoneId: !Ref ALBHostedZoneId
+      HostedZoneId: !Ref HostedZoneId
+      Type: A
 
   Deployment:
     DependsOn:
@@ -222,6 +223,17 @@ Resources:
     Properties:
       DeploymentId: !Ref Deployment
       RestApiId: !Ref RestApiId
+
+#  BasePathMapping:
+#    DependsOn:
+#      - DomainName
+#      - Deployment
+#    Type: AWS::ApiGateway::BasePathMapping
+#    Properties:
+#      BasePath: /
+#      DomainName: !Ref DomainName
+#      RestApiId: !Ref RestApiId
+#      Stage: !Ref Environment
 
   ApiKey:
     Type: AWS::ApiGateway::ApiKey

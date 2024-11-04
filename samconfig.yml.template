@@ -10,6 +10,9 @@ default:
       capabilities: CAPABILITY_NAMED_IAM
       fail_on_empty_changeset: false
       parameter_overrides:
+        - HostedZoneId=${HOSTED_ZONE_ID}
+        - ALBDNSName=${ALB_DNS_NAME}
+        - ALBHostedZoneId=${ALB_HOSTED_ZONE_ID}
         - Domain=${DOMAIN}
         - EFSMountPath=${EFS_MOUNT_PATH}
         - FileSystemId=${FILE_SYSTEM_ID}

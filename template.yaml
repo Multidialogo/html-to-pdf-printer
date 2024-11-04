@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  RulePriority:
+    Type: Number
+
+  ListenerArn:
+    Type: String
 
   HostedZoneId:
     Type: String
@@ -208,21 +213,21 @@ Resources:
       HostedZoneId: !Ref HostedZoneId
       Type: A
 
-  Deployment:
-    DependsOn:
-      - Method
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref RestApiId
-      StageName: !Ref Environment
+#  Deployment:
+#    DependsOn:
+#      - Method
+#    Type: AWS::ApiGateway::Deployment
+#    Properties:
+#      RestApiId: !Ref RestApiId
+#      StageName: !Ref Environment
 
-  Stage:
-    DependsOn:
-      - Deployment
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      DeploymentId: !Ref Deployment
-      RestApiId: !Ref RestApiId
+#  Stage:
+#    DependsOn:
+#      - Deployment
+#    Type: AWS::ApiGateway::Stage
+#    Properties:
+#      DeploymentId: !Ref Deployment
+#      RestApiId: !Ref RestApiId
 
 #  BasePathMapping:
 #    DependsOn:
@@ -253,9 +258,28 @@ Resources:
     DependsOn:
       - UsagePlan
       - ApiKey
-      - Stage
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !Ref ApiKey
       KeyType: API_KEY
       UsagePlanId: !Ref UsagePlan
+
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - RedirectConfig:
+            Protocol: HTTPS
+            Port: 443
+            Host: !Sub '${FunctionName}-${Environment}.${Domain}'
+            Path: '/#{path}'
+            Query: '#{query}'
+            StatusCode: HTTP_302
+          Type: forward
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig:
+            Values:
+              - !Sub '${FunctionName}-${Environment}.${Domain}'
+      ListenerArn: !Ref ListenerArn
+      Priority: !Ref RulePriority

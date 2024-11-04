@@ -10,6 +10,8 @@ default:
       capabilities: CAPABILITY_NAMED_IAM
       fail_on_empty_changeset: false
       parameter_overrides:
+        - RulePriority=10
+        - ListenerArn=${LISTENER_ARN}
         - HostedZoneId=${HOSTED_ZONE_ID}
         - ALBDNSName=${ALB_DNS_NAME}
         - ALBHostedZoneId=${ALB_HOSTED_ZONE_ID}

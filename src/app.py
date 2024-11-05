@@ -6,11 +6,11 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 import pdfkit
-from lxml import etree
 
 
 class App:
     LOGGER = logging.getLogger()
+    PDFKIT_CONFIG = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
 
     def __init__(self):
         self.LOGGER.setLevel(logging.INFO)  # Set level for AWS CloudWatch, doesn't affect Develop/local environment.
@@ -32,7 +32,7 @@ class App:
         if not headers:
             return self.error_response('Invalid header block', 'header block is missing', event)
 
-        content_type = headers.get('content-type')
+        content_type = headers.get('Content-Type')
 
         if not content_type or content_type != 'application/json':
             wrong_value = f"'{content_type}'" if content_type else 'null or empty'
@@ -40,7 +40,7 @@ class App:
                                        f"only the 'application/json' Content-Type header is allowed, {wrong_value} given",
                                        event, 415)
 
-        accept_header = headers.get('accept')
+        accept_header = headers.get('Accept')
 
         if not accept_header or accept_header != 'application/pdf':
             wrong_value = f"'{accept_header}'" if accept_header else 'null or empty'
@@ -48,13 +48,16 @@ class App:
                                        f"only the 'application/pdf' Accept header is allowed, {wrong_value} given",
                                        event, 406)
 
-        service_dir = headers.get('X-caller-service')
+        service_dir = headers.get('X-Caller-Service')
+
+        if service_dir:
+            service_dir = service_dir.lower().strip()
 
         if not service_dir:
             return self.error_response('Invalid X-caller-service header', "'X-caller-service' header is null or empty",
                                        event)
 
-        body = headers.get('body')
+        body = event.get('body')
 
         if not body:
             return self.error_response('Invalid body', 'body is null or empty', event)
@@ -74,36 +77,31 @@ class App:
                                        "one of 'data.attributes.htmlBody' or 'data.attributes.htmlUrl' must be set",
                                        event)
 
-        if html_body:
-            try:
-                parser = etree.HTMLParser()
-                etree.fromstring(html_body, parser)
-            except etree.XMLSyntaxError as e:
-                return self.error_response('HTML Content',
-                                           f"'data.attributes.htmlBody' contain invalid HTML - {e}",
-                                           event, 422)
-
+        valid_url = True
         if html_url:
             try:
-                urlparse(html_url)
+                result = urlparse(html_url)
+                valid_url = all([result.scheme, result.netloc])
             except AttributeError as e:
-                return self.error_response('URL Content',
-                                           f"'data.attributes.htmlUrl' contain invalid URL - {e}",
-                                           event, 422)
+                valid_url = False
+        if not valid_url:
+            return self.error_response('URL Content',
+                                       f"'data.attributes.htmlUrl' contain invalid URL",
+                                       event, 422)
 
         pdf_bytes = b''
         try:
             if html_body:
-                pdf_bytes = pdfkit.from_string(html_body, False)
+                pdf_bytes = pdfkit.from_string(html_body, False, configuration=self.PDFKIT_CONFIG)
             elif html_url:
-                pdf_bytes = pdfkit.from_url(html_url, False)
+                pdf_bytes = pdfkit.from_url(html_url, False, configuration=self.PDFKIT_CONFIG)
         except Exception as e:
             return self.error_response("Internal Server Error", f"error generating PDF: {e}", event, 500)
 
         efs_mount_path = os.environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
         service_path = os.path.join(efs_mount_path, service_dir)
 
-        file_name = hashlib.md5(pdf_bytes).hexdigest()
+        file_name = hashlib.md5(pdf_bytes, usedforsecurity=False).hexdigest()
         date_now = datetime.now()
         return_path = os.path.join(date_now.strftime("%Y"), date_now.strftime("%m"), date_now.strftime("%d"),
                                    file_name[0])
@@ -129,11 +127,11 @@ class App:
             }
         }
 
-    def create_response(self, body, code: int, content_type: str = 'application/json', base64_encoded: bool = False):
+    def create_response(self, body, code: int):
         return {
             'statusCode': code,
-            'headers': {'Content-Type': content_type},
-            'isBase64Encoded': base64_encoded,
+            'headers': {'Content-Type': 'application/json'},
+            'isBase64Encoded': False,
             'body': json.dumps(body) if isinstance(body, dict) else body
         }
 

@@ -1,6 +1,5 @@
-data/
 src/__pycache__/
-test/__pycache__/
+src/.coverage
 .idea
 *.iml
 .aws-sam

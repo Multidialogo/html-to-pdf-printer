@@ -25,7 +25,7 @@ RUN if [ -z "$EFS_MOUNT_PATH" ]; then \
         pip install -r requirements.dev.txt && \
         mkdir -p "$EFS_MOUNT_PATH"; \
     else \
-        rm test_* entrypoint.dev.sh .coveragerc .bandit requirements*; \
+        rm test_* *.json entrypoint.dev.sh .coveragerc .bandit requirements*; \
     fi
 
 CMD [ "app.handler" ]

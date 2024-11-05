@@ -11,10 +11,7 @@ default:
       fail_on_empty_changeset: false
       parameter_overrides:
         - RulePriority=10
-        - ListenerArn=${LISTENER_ARN}
         - HostedZoneId=${HOSTED_ZONE_ID}
-        - ALBDNSName=${ALB_DNS_NAME}
-        - ALBHostedZoneId=${ALB_HOSTED_ZONE_ID}
         - Domain=${DOMAIN}
         - EFSMountPath=${EFS_MOUNT_PATH}
         - FileSystemId=${FILE_SYSTEM_ID}
@@ -27,3 +24,5 @@ default:
         - Timeout=${TIMEOUT}
         - VPCCidr=${VPC_CIDR}
         - VPCID=${VPC_ID}
+        - VPCEndpointHostedZoneID=${VPC_ENDPOINT_HOSTED_ZONE_ID}
+        - VPCEndpointRegionalDNSEntry=${VPC_ENDPOINT_REGIONAL_DNS_ENTRY}

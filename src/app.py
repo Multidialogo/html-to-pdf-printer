@@ -17,10 +17,6 @@ class App:
 
     def process(self, event: dict, context):
 
-        os.system('ls -ln /mnt')
-        os.system('ls -ln /mnt/lambda')
-        os.system('ls -ln /mnt/lambda/multidialogo-api')
-
         if not event:
             return self.error_response("Invalid 'event' parameter", "'event' parameter is null or empty")
 

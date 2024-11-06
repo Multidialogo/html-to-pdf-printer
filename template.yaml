@@ -69,7 +69,7 @@ Resources:
         CreationInfo:
           OwnerGid: 1000
           OwnerUid: 1000
-          Permissions: 755
+          Permissions: 777
         Path: '/'
       AccessPointTags:
         - Key: Name

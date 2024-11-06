@@ -10,11 +10,10 @@ default:
       capabilities: CAPABILITY_NAMED_IAM
       fail_on_empty_changeset: false
       parameter_overrides:
-        - RulePriority=10
         - HostedZoneId=${HOSTED_ZONE_ID}
         - Domain=${DOMAIN}
         - EFSMountPath=${EFS_MOUNT_PATH}
-        - FileSystemId=${FILE_SYSTEM_ID}
+        - AccessPointArn=${ACCESS_POINT_ARN}
         - FunctionName=${FUNCTION_NAME}
         - Environment=${ENVIRONMENT}
         - Memory=${MEMORY}

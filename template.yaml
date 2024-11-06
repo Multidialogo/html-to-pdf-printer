@@ -2,8 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
-  RulePriority:
-    Type: Number
 
   HostedZoneId:
     Type: String
@@ -14,7 +12,7 @@ Parameters:
   EFSMountPath:
     Type: String
 
-  FileSystemId:
+  AccessPointArn:
     Type: String
 
   FunctionName:
@@ -57,25 +55,6 @@ Conditions:
     - prod
 
 Resources:
-
-  AccessPoint:
-    Type: AWS::EFS::AccessPoint
-    Properties:
-      FileSystemId: !Ref FileSystemId
-      PosixUser:
-        Uid: 1000
-        Gid: 1000
-      RootDirectory:
-        CreationInfo:
-          OwnerGid: 1000
-          OwnerUid: 1000
-          Permissions: 777
-        Path: '/'
-      AccessPointTags:
-        - Key: Name
-          Value: !Sub '${FunctionName}-${Environment}'
-        - Key: path
-          Value: /
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -145,14 +124,13 @@ Resources:
     DependsOn:
       - SecurityGroup
       - FunctionRole
-      - AccessPoint
     Type: AWS::Serverless::Function
     Properties:
       Environment:
         Variables:
           EFS_MOUNT_PATH: !Ref EFSMountPath
       FileSystemConfigs:
-        - Arn: !GetAtt AccessPoint.Arn
+        - Arn: !Ref AccessPointArn
           LocalMountPath: !Ref EFSMountPath
       FunctionName: !Sub '${FunctionName}-${Environment}'
       LoggingConfig:

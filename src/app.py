@@ -160,4 +160,7 @@ class App:
 
 def handler(event: dict, context):
     app = App()
+
+    print('text 8')
+
     return app.process(event, context)

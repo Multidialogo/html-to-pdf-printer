@@ -17,6 +17,7 @@ class App:
 
     def process(self, event: dict, context):
 
+        os.system('ls -l /mnt')
         os.system('ls -l /mnt/lambda')
         os.system('ls -l /mnt/lambda/multidialogo-api')
 

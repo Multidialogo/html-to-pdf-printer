@@ -65,6 +65,12 @@ Resources:
       PosixUser:
         Uid: 1000
         Gid: 1000
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: 1000
+          OwnerUid: 1000
+          Permissions: 755
+        Path: '/'
       AccessPointTags:
         - Key: Name
           Value: !Sub '${FunctionName}-${Environment}'

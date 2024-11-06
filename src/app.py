@@ -76,7 +76,7 @@ class App:
             return self.error_response('Invalid payload',
                                        "one of 'data.attributes.htmlBody' or 'data.attributes.htmlUrl' must be set",
                                        event)
-        print('text 1')
+
         valid_url = True
         if html_url:
             try:
@@ -89,8 +89,6 @@ class App:
                                        f"'data.attributes.htmlUrl' contain invalid URL",
                                        event, 422)
 
-        print('text 2')
-
         pdf_bytes = b''
         try:
             if html_body:
@@ -100,20 +98,16 @@ class App:
         except Exception as e:
             return self.error_response("Internal Server Error", f"error generating PDF: {e}", event, 500)
 
-        print('text 3')
 
         efs_mount_path = os.environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
         service_path = os.path.join(efs_mount_path, service_dir)
-        print('text 4')
 
         file_name = hashlib.md5(pdf_bytes, usedforsecurity=False).hexdigest()
         date_now = datetime.now()
         return_path = os.path.join(date_now.strftime("%Y"), date_now.strftime("%m"), date_now.strftime("%d"),
                                    file_name[0])
-        print('text 5')
 
         os.makedirs(os.path.join(service_path, return_path), exist_ok=True)
-        print('text 6')
 
         return_path = os.path.join(return_path, f'{file_name}.pdf')
         pdf_file_path = os.path.join(service_path, return_path)
@@ -124,7 +118,6 @@ class App:
                     file.write(pdf_bytes)
             except IOError as e:
                 return self.error_response("Internal Server Error", f"error saving PDF: {e}", event, 500)
-        print('text 7')
 
         return {
             'statusCode': 200,
@@ -160,7 +153,4 @@ class App:
 
 def handler(event: dict, context):
     app = App()
-
-    print('text 8')
-
     return app.process(event, context)

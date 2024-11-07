@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pymupdf
 
@@ -72,7 +73,7 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         self.call_lambda_and_assert_errors(
             payload,
             error_title,
-            "only the 'application/pdf' Accept header is allowed, 'text/html' given",
+            "only the 'application/json' Accept header is allowed, 'text/html' given",
             406
         )
 
@@ -80,7 +81,7 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         self.call_lambda_and_assert_errors(
             payload,
             error_title,
-            "only the 'application/pdf' Accept header is allowed, null or empty given",
+            "only the 'application/json' Accept header is allowed, null or empty given",
             406
         )
 
@@ -89,8 +90,8 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         payload['headers']['X-Caller-Service'] = None
         self.call_lambda_and_assert_errors(
             payload,
-            'Invalid X-caller-service header',
-            "'X-caller-service' header is null or empty",
+            'Invalid X-Caller-Service header',
+            "'X-Caller-Service' header is null or empty",
         )
 
     def test_body(self):
@@ -117,6 +118,27 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         payload['body'] = json.dumps(body)
         self.call_lambda_and_assert_errors(payload, 'URL Content', "'data.attributes.htmlUrl' contain invalid URL", 422)
 
+        body = {'data': {'attributes': {'htmlUrl': '//[oops'}}}
+        payload['body'] = json.dumps(body)
+        self.call_lambda_and_assert_errors(payload, 'URL Content', "'data.attributes.htmlUrl' contain invalid URL", 422)
+
+        body = {'data': {'attributes': {'htmlUrl': 'http://sito.molto/bello'}}}
+        payload['body'] = json.dumps(body)
+        self.call_lambda_and_assert_errors(
+            payload,
+            'Internal Server Error',
+            'error generating PDF: wkhtmltopdf reported an error:\nExit with code 1 due to network error: HostNotFoundError\n',
+            500
+        )
+
+    @patch('builtins.open', new_callable=mock_open)
+    def test_file_write_exception(self, mock_file):
+        mock_file().write.side_effect = IOError('write error')
+        payload = self.load_api_gateway_payload()
+        body = {'data': {'attributes': {'htmlUrl': 'https://www.google.it'}}}
+        payload['body'] = json.dumps(body)
+        self.call_lambda_and_assert_errors(payload, 'Internal Server Error', 'error saving PDF: write error', 500)
+
     def test_pdf_creation(self):
         payload = self.load_api_gateway_payload()
 
@@ -124,7 +146,8 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         payload['body'] = json.dumps(body)
         response = handler(payload, None)
         self.assertEqual(200, response['statusCode'])
-        self.assertTrue(response['data']['attributes']['sharedFilePath'])
+        shared_file_path = json.loads(response['body'])['data']['attributes']['sharedFilePath']
+        self.assertTrue(shared_file_path)
 
         html_content = """
         <html>
@@ -147,7 +170,8 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
 
         expected_pdf_text = 'Hello, PDF!\nThis is a subheading with inline style\nThis is a paragraph.\n'
         generated_pdf_text = ''
-        with pymupdf.open(f"/test/multidialogo-api/{response['data']['attributes']['sharedFilePath']}") as pdf:
+        shared_file_path = json.loads(response['body'])['data']['attributes']['sharedFilePath']
+        with pymupdf.open(f"/test/multidialogo-api/{shared_file_path}") as pdf:
             for page in pdf:
                 generated_pdf_text += page.get_text()
         self.assertEqual(expected_pdf_text, generated_pdf_text)

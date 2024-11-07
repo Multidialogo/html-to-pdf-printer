@@ -1,10 +1,9 @@
+from datetime import datetime
+from hashlib import md5
+from json import loads, dumps
 from logging import getLogger, INFO
 from os import path, environ, makedirs
-from json import loads, dumps
-from hashlib import md5
-from datetime import datetime
 from urllib.parse import urlparse
-# server ancora? from venv import create
 
 import pdfkit
 
@@ -37,7 +36,7 @@ class App:
             return self.error_response('Invalid header block',
                                        'header block is missing', event)
 
-        content_type = headers.get('Content-Type')
+        content_type = self.get_case_insensitive_key(headers, 'content-type')
 
         if not content_type or content_type != 'application/json':
             wrong_value = f"'{content_type}'" if content_type else 'null or empty'
@@ -46,7 +45,7 @@ class App:
                                        event,
                                        415)
 
-        accept_header = headers.get('Accept')
+        accept_header = self.get_case_insensitive_key(headers, 'accept')
 
         if not accept_header or accept_header != 'application/json':
             wrong_value = f"'{accept_header}'" if accept_header else 'null or empty'
@@ -55,14 +54,14 @@ class App:
                                        event,
                                        406)
 
-        service_dir = headers.get('X-Caller-Service')
+        service_dir = self.get_case_insensitive_key(headers, 'x-caller-service')
 
         if service_dir:
             service_dir = service_dir.lower().strip()
 
         if not service_dir:
-            return self.error_response('Invalid X-caller-service header',
-                                       "'X-caller-service' header is null or empty",
+            return self.error_response('Invalid X-Caller-Service header',
+                                       "'X-Caller-Service' header is null or empty",
                                        event)
 
         body = event.get('body')
@@ -94,7 +93,7 @@ class App:
             try:
                 result = urlparse(html_url)
                 valid_url = all([result.scheme, result.netloc])
-            except AttributeError:
+            except ValueError:
                 valid_url = False
         if not valid_url:
             return self.error_response('URL Content',
@@ -114,14 +113,13 @@ class App:
                                        event,
                                        500)
 
-
         efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
         service_path = path.join(efs_mount_path, service_dir)
 
         file_name = md5(pdf_bytes, usedforsecurity=False).hexdigest()
         date_now = datetime.now()
         return_path = path.join(date_now.strftime("%Y"), date_now.strftime("%m"), date_now.strftime("%d"),
-                                   file_name[0])
+                                file_name[0])
 
         makedirs(path.join(service_path, return_path), exist_ok=True)
 
@@ -145,10 +143,9 @@ class App:
             }
         }
 
-        return self.create_response(response_body,200)
+        return self.create_response(response_body, 200)
 
     def create_response(self, body, code: int) -> dict:
-
         return {
             'statusCode': code,
             'headers': {'Content-Type': 'application/json'},
@@ -169,6 +166,12 @@ class App:
 
         body = {"error": {"title": title, "detail": detail}}
         return self.create_response(body, code)
+
+    def get_case_insensitive_key(self, d: dict, key: str, default=None):
+        for k in d.keys():
+            if k.lower() == key.lower():
+                return d[k]
+        return default
 
 
 def handler(event: dict, context):

@@ -124,7 +124,9 @@ class App:
             'data': {
                 'attributes': {
                     'sharedFilePath': return_path
-                }
+                },
+            'isBase64Encoded': False,
+            'body': 'test'
             }
         }
 

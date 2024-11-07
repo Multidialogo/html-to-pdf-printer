@@ -137,10 +137,18 @@ class App:
                                            f"error saving PDF: {e}",
                                            event,
                                            500)
+        response_body = {
+            'data': {
+                'attributes': {
+                    'sharedFilePath': return_path
+                }
+            }
+        }
 
-        return self.create_response('',200)
+        return self.create_response(response_body,200)
 
     def create_response(self, body, code: int) -> dict:
+
         return {
             'statusCode': code,
             'headers': {'Content-Type': 'application/json'},

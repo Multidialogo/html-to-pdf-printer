@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from urllib.parse import urlparse
+from venv import create
 
 import pdfkit
 
@@ -119,21 +120,23 @@ class App:
             except IOError as e:
                 return self.error_response("Internal Server Error", f"error saving PDF: {e}", event, 500)
 
-        return {
-            'statusCode': 200,
-            'data': {
-                'attributes': {
-                    'sharedFilePath': return_path
-                }
-            },
-            'isBase64Encoded': False,
-            'body': 'test'
-        }
+        # return {
+        #     'statusCode': 200,
+        #     'data': {
+        #         'attributes': {
+        #             'sharedFilePath': return_path
+        #         }
+        #     },
+        #     'isBase64Encoded': False,
+        #     'body': json.dumps()
+        # }
+
+        return self.create_response('',200)
 
     def create_response(self, body, code: int) -> dict:
         return {
             'statusCode': code,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {'Content-Type': 'application/pdf'},
             'isBase64Encoded': False,
             'body': json.dumps(body) if isinstance(body, dict) else body
         }

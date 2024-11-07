@@ -124,13 +124,13 @@ class App:
             'data': {
                 'attributes': {
                     'sharedFilePath': return_path
-                },
+                }
+            },
             'isBase64Encoded': False,
             'body': 'test'
-            }
         }
 
-    def create_response(self, body, code: int):
+    def create_response(self, body, code: int) -> dict:
         return {
             'statusCode': code,
             'headers': {'Content-Type': 'application/json'},

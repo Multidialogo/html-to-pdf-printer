@@ -1,6 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.12
-
-COPY src $LAMBDA_TASK_ROOT
+FROM amazonlinux:2023.6.20241031.0
 
 ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"
 ARG WKHTMLTOPDF_PLATFORM="x86_64"
@@ -9,23 +7,39 @@ ADD --checksum=$WKHTMLTOPDF_SHA256 \
     "https://github.com/wkhtmltopdf/packaging/releases/download/$WKHTMLTOPDF_VERSION/wkhtmltox-$WKHTMLTOPDF_VERSION.almalinux9.$WKHTMLTOPDF_PLATFORM.rpm" \
     /wkhtmltopdf.rpm
 
-ARG EFS_MOUNT_PATH
-ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
+WORKDIR /src
+COPY src .
+COPY nginx.conf /etc/nginx/nginx.conf
 
-ARG DEV=false
-RUN if [ -z "$EFS_MOUNT_PATH" ]; then \
-      echo -e '\033[0;31mError: environment variable EFS_MOUNT_PATH not provided.\033[0m' && exit 4; \
-    fi && \
-    dnf install -y fontconfig freetype libX11 libXext libXrender libjpeg libpng openssl xorg-x11-fonts-75dpi xorg-x11-fonts-Type1 && \
+RUN dnf install -y ca-certificates \
+                   fontconfig \
+                   freetype \
+                   glibc \
+                   libjpeg \
+                   libpng \
+                   libstdc++ \
+                   libX11 \
+                   libXext \
+                   libXrender \
+                   openssl \
+                   xorg-x11-fonts-75dpi \
+                   xorg-x11-fonts-Type1 \
+                   zlib \
+                   python-pip \
+                   nginx && \
     rpm -ivh /wkhtmltopdf.rpm && \
     dnf clean all && \
     rm /wkhtmltopdf.rpm && \
     pip install -r requirements.txt && \
-    if [ $DEV = "true" ]; then \
-        pip install -r requirements.dev.txt && \
-        mkdir -p "$EFS_MOUNT_PATH"; \
-    else \
-        rm test_* *.json entrypoint.dev.sh .coveragerc .bandit requirements*; \
-    fi
+    touch /run/nginx.pid && \
+    adduser \
+        --no-create-home \
+        --shell /usr/sbin/nologin \
+        user && \
+    chown -R user:user /var/log/nginx && \
+    chown -R user:user /var/lib/nginx && \
+    chown -R user:user /run/nginx.pid
 
-CMD [ "app.handler" ]
+USER user
+
+CMD ["sh", "-c", "nginx && gunicorn -b 0.0.0.0:8888 app:app"]

@@ -11,7 +11,14 @@ WORKDIR /src
 COPY src .
 COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN dnf install -y ca-certificates \
+ARG EFS_MOUNT_PATH
+ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
+
+ARG DEV=false
+RUN if [ -z "$EFS_MOUNT_PATH" ]; then \
+      echo -e '\033[0;31mError: environment variable EFS_MOUNT_PATH not provided.\033[0m' && exit 4; \
+    fi && \
+    dnf install -y ca-certificates \
                    fontconfig \
                    freetype \
                    glibc \
@@ -38,7 +45,14 @@ RUN dnf install -y ca-certificates \
         user && \
     chown -R user:user /var/log/nginx && \
     chown -R user:user /var/lib/nginx && \
-    chown -R user:user /run/nginx.pid
+    chown -R user:user /run/nginx.pid && \
+    if [ $DEV = "true" ]; then \
+        pip install -r requirements.dev.txt && \
+        mkdir -p "$EFS_MOUNT_PATH" && \
+        chown -R user:user "$EFS_MOUNT_PATH"; \
+    else \
+        rm test_* *.json entrypoint.dev.sh .coveragerc .bandit requirements*; \
+    fi
 
 USER user
 

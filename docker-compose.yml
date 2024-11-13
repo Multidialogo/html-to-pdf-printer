@@ -5,7 +5,8 @@ services:
         DEV: true
         EFS_MOUNT_PATH: /test
     ports:
-      - "8080:80"
+      - "5000:5000"
     volumes:
       - ./src:/src
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    entrypoint: [ "/src/entrypoint.dev.sh" ]

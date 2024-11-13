@@ -51,7 +51,7 @@ RUN if [ -z "$EFS_MOUNT_PATH" ]; then \
         mkdir -p "$EFS_MOUNT_PATH" && \
         chown -R user:user "$EFS_MOUNT_PATH"; \
     else \
-        rm test_* *.json entrypoint.dev.sh .coveragerc .bandit requirements*; \
+        rm test_* entrypoint.dev.sh .coveragerc .bandit requirements*; \
     fi
 
 USER user

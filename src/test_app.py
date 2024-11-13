@@ -1,12 +1,10 @@
-import os
-import sys
 import unittest
 from unittest.mock import mock_open, patch
 
 import pymupdf
 from flask import Response
 
-from app import app
+from app import app, logger
 
 
 class PDFGeneratorAPITestCase(unittest.TestCase):
@@ -16,10 +14,9 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         cls.app = app.test_client()
         cls.app.testing = True
         cls.route = '/download'
-        sys.stdout = open(os.devnull, 'w')
-        sys.stderr = open(os.devnull, 'w')
 
     def setUp(self):
+        logger.disabled = True
         self.headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -39,7 +36,6 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
             "only the 'GET' method is allowed, 'POST' given",
             405
         )
-
 
     def test_http_method(self):
         response = self.app.get(self.route)

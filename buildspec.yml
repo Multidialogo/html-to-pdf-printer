@@ -23,11 +23,11 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
   build:
     on-failure: ABORT
     commands:
       - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
-      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "823598220965.dkr.ecr.eu-west-1.amazonaws.com/html-to-pdf-printer-stage:latest"
-      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "823598220965.dkr.ecr.eu-west-1.amazonaws.com/html-to-pdf-printer-stage:${CODEBUILD_SOURCE_VERSION}"
-      - docker push "${REGISTRY_URL}/${SERVICE_NAME}-${ENVIRONMENT}" --all-tags
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:latest"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:${CODEBUILD_SOURCE_VERSION}"
+      - docker push "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}" --all-tags

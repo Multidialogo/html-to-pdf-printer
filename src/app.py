@@ -16,7 +16,6 @@ logger = getLogger(__name__)
 
 @app.route('/health-check', methods=['GET'])
 def hello():
-    logger.info("Hello, World! endpoint was reached.")
     return "Hello, World!"
 
 

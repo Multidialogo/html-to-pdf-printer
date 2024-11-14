@@ -57,6 +57,6 @@ phases:
         --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
         --logical-resource-id TaskDefinition \
         --query StackResources[].PhysicalResourceId --output text)
-      - aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}"
+      - aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}" --overwrite
       - aws ecs update-service --cluster "${ENVIRONMENT}" --service "${SERVICE_NAME}" --task-definition "${NEW_TASK_DEFINITION_ARN}"
       - aws ecs wait services-stable --cluster "${ENVIRONMENT}" --services "${SERVICE_NAME}"

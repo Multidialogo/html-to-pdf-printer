@@ -35,6 +35,7 @@ phases:
         "${IMAGE_URI}:${EPOCH_TAG}"
       - docker push "${IMAGE_URI}" --all-tags
       - ACTUAL_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
+      - echo "Actual task definition: ${ACTUAL_TASK_DEFINITION_ARN}"
       - |
         aws cloudformation update-stack --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
         --parameters ParameterKey=ImageTag,ParameterValue=${EPOCH_TAG} \

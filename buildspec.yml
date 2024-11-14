@@ -15,20 +15,37 @@ phases:
     commands:
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=overlay&
       - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
-#      - yum install -y unzip
-#      - wget -qO "${SAM_CLI_PACKAGE_NAME}" "${SAM_CLI_LINK}"
-#      - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
-#      - ./sam-installation/install
-#      - sam --version
   pre_build:
     on-failure: ABORT
     commands:
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - |
+        aws ecr get-login-password --region $AWS_DEFAULT_REGION \
+        | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
   build:
     on-failure: ABORT
     commands:
       - EPOCH_TAG=$(date +%s)
+      - IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}
       - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
-      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:latest"
-      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:${EPOCH_TAG}"
-      - docker push "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}" --all-tags
+      - |
+        docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" \
+        "${IMAGE_URI}:latest"
+      - |
+        docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" \
+        "${IMAGE_URI}:${EPOCH_TAG}"
+      - docker push "${IMAGE_URI}" --all-tags
+      - ACTUAL_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
+      - |
+        aws cloudformation update-stack --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
+        --parameters ParameterKey=ImageTag,ParameterValue=${EPOCH_TAG} \
+        ParameterKey=Cpu,UsePreviousValue=true \
+        ParameterKey=Memory,UsePreviousValue=true \
+        ParameterKey=ContainerName,UsePreviousValue=true \
+        ParameterKey=ContainerPort,UsePreviousValue=true \
+        ParameterKey=Environment,UsePreviousValue=true \
+        ParameterKey=EFSMountPath,UsePreviousValue=true \
+        ParameterKey=Registry,UsePreviousValue=true \
+        ParameterKey=ServiceName,UsePreviousValue=true \
+        ParameterKey=ImageName,UsePreviousValue=true \
+        ParameterKey=EFSFileSystemId,UsePreviousValue=true \
+        --use-previous-template

@@ -48,4 +48,5 @@ phases:
         ParameterKey=ServiceName,UsePreviousValue=true \
         ParameterKey=ImageName,UsePreviousValue=true \
         ParameterKey=EFSFileSystemId,UsePreviousValue=true \
+        --capabilities CAPABILITY_IAM \
         --use-previous-template

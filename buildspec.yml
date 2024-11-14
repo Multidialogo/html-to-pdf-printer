@@ -1,10 +1,10 @@
 version: 0.2
 
-env:
-  shell: bash
-  variables:
-    SAM_CLI_LINK: 'https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip'
-    SAM_CLI_PACKAGE_NAME: 'aws-sam-cli.zip'
+#env:
+#  shell: bash
+#  variables:
+#    SAM_CLI_LINK: 'https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip'
+#    SAM_CLI_PACKAGE_NAME: 'aws-sam-cli.zip'
 
 phases:
   install:
@@ -15,14 +15,19 @@ phases:
     commands:
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=overlay&
       - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
-      - yum install -y unzip
-      - wget -qO "${SAM_CLI_PACKAGE_NAME}" "${SAM_CLI_LINK}"
-      - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
-      - ./sam-installation/install
-      - sam --version
+#      - yum install -y unzip
+#      - wget -qO "${SAM_CLI_PACKAGE_NAME}" "${SAM_CLI_LINK}"
+#      - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
+#      - ./sam-installation/install
+#      - sam --version
+  pre-build:
+    on-failure: ABORT
+    commands:
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdi
   build:
     on-failure: ABORT
     commands:
-      - envsubst < samconfig.yml.template > samconfig.yml
-      - sam build
-      - sam deploy
+      - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "823598220965.dkr.ecr.eu-west-1.amazonaws.com/html-to-pdf-printer-stage:latest"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "823598220965.dkr.ecr.eu-west-1.amazonaws.com/html-to-pdf-printer-stage:${CODEBUILD_SOURCE_VERSION}"
+      - docker push "${REGISTRY_URL}/${SERVICE_NAME}-${ENVIRONMENT}" --all-tags

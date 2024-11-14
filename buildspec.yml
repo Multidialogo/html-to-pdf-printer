@@ -27,7 +27,8 @@ phases:
   build:
     on-failure: ABORT
     commands:
+      - EPOCH_TAG=$(date +%s)
       - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
       - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:latest"
-      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:${CODEBUILD_SOURCE_VERSION}"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}:${EPOCH_TAG}"
       - docker push "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}-${ENVIRONMENT}" --all-tags

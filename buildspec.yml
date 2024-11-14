@@ -20,7 +20,7 @@ phases:
 #      - unzip -qq "${SAM_CLI_PACKAGE_NAME}" -d sam-installation
 #      - ./sam-installation/install
 #      - sam --version
-  pre-build:
+  pre_build:
     on-failure: ABORT
     commands:
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdi

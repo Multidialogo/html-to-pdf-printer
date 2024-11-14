@@ -24,12 +24,13 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         }
 
     def test_health_check(self):
-        response = self.app.get('/')
+        health_check_route = '/health-check'
+        response = self.app.get(health_check_route)
         self.assertEqual(200, response.status_code)
         self.assertEqual(b'Hello, World!', response.data)
 
         # This test is not so necessary.
-        response = self.app.post('/')
+        response = self.app.post(health_check_route)
         self.assert_errors(
             response,
             'Invalid http method',

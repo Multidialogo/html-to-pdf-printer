@@ -14,7 +14,7 @@ basicConfig(level=INFO)
 logger = getLogger(__name__)
 
 
-@app.route('/', methods=['GET'])
+@app.route('/health-check', methods=['GET'])
 def hello():
     logger.info("Hello, World! endpoint was reached.")
     return "Hello, World!"
@@ -116,7 +116,7 @@ def convert():
 @app.errorhandler(405)
 def method_not_allowed(e):
     wrong_value = f"'{request.method}'" if request.method else 'null or empty'
-    method_allowed = 'GET' if request.path == '/' else 'POST'
+    method_allowed = 'POST' if request.path == '/download' else 'GET'
     return format_error_message(
         'Invalid http method',
         f"only the '{method_allowed}' method is allowed, {wrong_value} given",

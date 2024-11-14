@@ -23,7 +23,7 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdi
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin
   build:
     on-failure: ABORT
     commands:

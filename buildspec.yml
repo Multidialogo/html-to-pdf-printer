@@ -51,3 +51,12 @@ phases:
         ParameterKey=EFSFileSystemId,UsePreviousValue=true \
         --capabilities CAPABILITY_IAM \
         --use-previous-template
+      - aws cloudformation wait stack-update-complete --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition
+      - |
+        NEW_TASK_DEFINITION_ARN=$(aws cloudformation describe-stack-resources \
+        --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
+        --logical-resource-id TaskDefinition \
+        --query StackResources[].PhysicalResourceId --output text)
+      - aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}"
+      - aws ecs update-service --cluster "${ENVIRONMENT}" --service "${SERVICE_NAME}" --task-definition "${NEW_TASK_DEFINITION_ARN}"
+      - aws ecs wait services-stable --cluster "${ENVIRONMENT}" --services "${SERVICE_NAME}"

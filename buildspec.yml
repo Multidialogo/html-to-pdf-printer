@@ -40,6 +40,7 @@ phases:
           if [ -z "${TAG_TO_PROMOTE}" ]; then echo "An error occurred, variable \$TAG_TO_PROMOTE must be set when deploying in prod!" && exit 1; fi
           docker pull "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}"
           EPOCH_TAG=${TAG_TO_PROMOTE}
+        fi
       - docker push "${IMAGE_URI}" --all-tags
       - ACTUAL_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
       - echo "Actual task definition is ${ACTUAL_TASK_DEFINITION_ARN}"

@@ -22,7 +22,7 @@ phases:
         aws ecr get-login-password --region $AWS_DEFAULT_REGION \
         | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
   build:
-    on-failure: ABORT
+    on-failure: CONTINUE
     commands:
       - EPOCH_TAG=$(date +%s)
       - REGISTRY_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"

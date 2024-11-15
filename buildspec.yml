@@ -39,8 +39,8 @@ phases:
         if [ "${ENVIRONMENT}" = "prod" ]; then
           if [ -z "${TAG_TO_PROMOTE}" ]; then echo "An error occurred, variable \$TAG_TO_PROMOTE must be set when deploying in prod!" && exit 1; fi
           docker pull "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}"
-          docker tag "${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:latest"
-          docker tag "${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:${TAG_TO_PROMOTE}"
+          docker tag "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:latest"
+          docker tag "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:${TAG_TO_PROMOTE}"
           EPOCH_TAG=${TAG_TO_PROMOTE}
         fi
       - docker push "${IMAGE_URI}" --all-tags

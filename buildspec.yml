@@ -42,8 +42,8 @@ phases:
           EPOCH_TAG=${TAG_TO_PROMOTE}
         fi
       - docker push "${IMAGE_URI}" --all-tags
-      - ACTUAL_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
-      - echo "Actual task definition is ${ACTUAL_TASK_DEFINITION_ARN}"
+      - OLD_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
+      - echo "Actual task definition is ${OLD_TASK_DEFINITION_ARN}"
       - |
         aws cloudformation update-stack --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
         --parameters ParameterKey=ImageTag,ParameterValue=${EPOCH_TAG} \
@@ -67,4 +67,9 @@ phases:
         --query StackResources[].PhysicalResourceId --output text)
       - aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}" --overwrite
       - aws ecs update-service --cluster "${ENVIRONMENT}" --service "${SERVICE_NAME}" --task-definition "${NEW_TASK_DEFINITION_ARN}"
-      - aws ecs wait services-stable --cluster "${ENVIRONMENT}" --services "${SERVICE_NAME}"
+      - SERVICE_DEPLOY_STATUS_CODE=$(aws ecs wait services-stable --cluster "${ENVIRONMENT}" --services "${SERVICE_NAME}")
+      - |
+        if [ "${SERVICE_DEPLOY_STATUS_CODE}" = 255 ]; then
+          echo "Restoring old task definition ${OLD_TASK_DEFINITION_ARN} arn in ssm"
+          aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${OLD_TASK_DEFINITION_ARN}" --overwrite
+        fi

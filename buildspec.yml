@@ -72,13 +72,13 @@ phases:
     on-failure: ABORT
     commands:
       - |
-        if [ "${CODEBUILD_BUILD_SUCCEEDING}" -eq 0 ]; then
+        if [ ${CODEBUILD_BUILD_SUCCEEDING} -eq 0 ]; then
           echo "Build not succeeded, restoring old task definition in ssm."
           aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${OLD_TASK_DEFINITION_ARN}" --overwrite
           exit 1
         fi
       - |
-        if [ "${CODEBUILD_BUILD_SUCCEEDING}" -eq 1 ]; then
+        if [ ${CODEBUILD_BUILD_SUCCEEDING} -eq 1 ]; then
           echo "Build succeeded, updating task definition in ssm."
           aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}" --overwrite
         fi

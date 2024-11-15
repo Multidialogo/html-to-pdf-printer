@@ -73,10 +73,12 @@ phases:
     commands:
       - |
         if [ "${CODEBUILD_BUILD_SUCCEEDING}" -eq 0 ]; then
+          echo "Build not succeeded, restoring old task definition in ssm."
           TASK_DEFINITION_ARN="${OLD_TASK_DEFINITION_ARN}"
         fi
       - |
         if [ "${CODEBUILD_BUILD_SUCCEEDING}" -eq 1 ]; then
+          echo "Build succeeded, updating task definition in ssm."
           TASK_DEFINITION_ARN="${NEW_TASK_DEFINITION_ARN}"
         fi
       - aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${TASK_DEFINITION_ARN}" --overwrite

@@ -1,4 +1,4 @@
-FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux:2023.6.20241031.0
+FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9
 
 ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"
 ARG WKHTMLTOPDF_PLATFORM="x86_64"
@@ -15,8 +15,7 @@ ARG EFS_MOUNT_PATH
 ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
 
 ARG DEV=false
-RUN dnf install -y ca-certificates \
-                   fontconfig \
+RUN dnf install -y fontconfig \
                    freetype \
                    glibc \
                    libjpeg \
@@ -25,24 +24,13 @@ RUN dnf install -y ca-certificates \
                    libX11 \
                    libXext \
                    libXrender \
-                   openssl \
                    xorg-x11-fonts-75dpi \
                    xorg-x11-fonts-Type1 \
-                   zlib \
-                   python-pip \
-                   nginx && \
+                   zlib && \
     rpm -ivh /wkhtmltopdf.rpm && \
     dnf clean all && \
     rm /wkhtmltopdf.rpm && \
-    pip install -r requirements.txt && \
-    touch /run/nginx.pid && \
-    adduser \
-        --no-create-home \
-        --shell /usr/sbin/nologin \
-        user && \
-    chown -R user:user /var/log/nginx && \
-    chown -R user:user /var/lib/nginx && \
-    chown -R user:user /run/nginx.pid
+    pip install -r requirements.txt
 
 USER user
 

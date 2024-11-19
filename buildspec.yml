@@ -22,27 +22,14 @@ phases:
         aws ecr get-login-password --region $AWS_DEFAULT_REGION \
         | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
   build:
-    on-failure: CONTINUE
+    on-failure: ABORT
     commands:
       - EPOCH_TAG=$(date +%s)
       - REGISTRY_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
       - IMAGE_URI="${REGISTRY_URL}/${SERVICE_NAME}-${ENVIRONMENT}"
-      - |
-        if [ ! "${ENVIRONMENT}" = "prod" ]; then
-          docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
-          docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" \
-          "${IMAGE_URI}:latest"
-          docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" \
-          "${IMAGE_URI}:${EPOCH_TAG}"
-        fi
-      - |
-        if [ "${ENVIRONMENT}" = "prod" ]; then
-          if [ -z "${TAG_TO_PROMOTE}" ]; then echo "An error occurred, variable \$TAG_TO_PROMOTE must be set when deploying in prod!" && exit 1; fi
-          docker pull "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}"
-          docker tag "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:latest"
-          docker tag "${REGISTRY_URL}/${SERVICE_NAME}-stage:${TAG_TO_PROMOTE}" "${IMAGE_URI}:${TAG_TO_PROMOTE}"
-          EPOCH_TAG=${TAG_TO_PROMOTE}
-        fi
+      - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${IMAGE_URI}:latest"
+      - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${IMAGE_URI}:${EPOCH_TAG}"
       - docker push "${IMAGE_URI}" --all-tags
       - OLD_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
       - echo "Actual task definition is ${OLD_TASK_DEFINITION_ARN}"

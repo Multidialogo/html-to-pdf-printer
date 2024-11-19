@@ -1,11 +1,5 @@
 version: 0.2
 
-#env:
-#  shell: bash
-#  variables:
-#    SAM_CLI_LINK: 'https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip'
-#    SAM_CLI_PACKAGE_NAME: 'aws-sam-cli.zip'
-
 phases:
   install:
     run-as: root

@@ -11,8 +11,7 @@ WORKDIR /src
 COPY src .
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ARG EFS_MOUNT_PATH
-ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
+ENV EFS_MOUNT_PATH=/test
 
 RUN dnf install -y $(cat packages.txt) && \
     rpm -ivh /wkhtmltopdf.rpm && \

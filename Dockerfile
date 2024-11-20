@@ -39,9 +39,8 @@ COPY --from=builder /src/packages.txt packages.txt
 RUN dnf install -y $(cat packages.txt) && \
     rpm -ivh /wkhtmltopdf.rpm && \
     dnf clean all && \
-    rm /wkhtmltopdf.rpm && \
     pip install -r requirements.txt && \
-    rm *.txt
+    rm /wkhtmltopdf.rpm *.txt
 
 USER user
 

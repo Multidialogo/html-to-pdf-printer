@@ -1,0 +1,14 @@
+ca-certificates
+fontconfig
+freetype
+glibc
+libjpeg
+libpng
+libstdc++
+libX11
+libXext
+libXrender
+openssl
+xorg-x11-fonts-75dpi
+xorg-x11-fonts-Type1
+zlib

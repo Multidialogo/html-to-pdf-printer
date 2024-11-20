@@ -1,4 +1,4 @@
-FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9
+FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9 AS builder
 
 ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"
 ARG WKHTMLTOPDF_PLATFORM="x86_64"
@@ -14,23 +14,35 @@ COPY nginx.conf /etc/nginx/nginx.conf
 ARG EFS_MOUNT_PATH
 ENV EFS_MOUNT_PATH=$EFS_MOUNT_PATH
 
-ARG DEV=false
-RUN dnf install -y fontconfig \
-                   freetype \
-                   glibc \
-                   libjpeg \
-                   libpng \
-                   libstdc++ \
-                   libX11 \
-                   libXext \
-                   libXrender \
-                   xorg-x11-fonts-75dpi \
-                   xorg-x11-fonts-Type1 \
-                   zlib && \
+RUN dnf install -y $(cat packages.txt) && \
+    rpm -ivh /wkhtmltopdf.rpm && \
+    dnf clean all && \
+    pip install -r requirements.txt -r requirements.dev.txt && \
+    mkdir -p "$EFS_MOUNT_PATH" && \
+    chown -R user:user "$EFS_MOUNT_PATH"
+
+USER user
+
+RUN python3 -m unittest
+
+CMD ["sh", "-c", "nginx && gunicorn -b 0.0.0.0:8888 app:app"]
+
+FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9 AS production
+
+COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /wkhtmltopdf.rpm /wkhtmltopdf.rpm
+
+WORKDIR /src
+COPY --from=builder /src/app.py app.py
+COPY --from=builder /src/requirements.txt requirements.txt
+COPY --from=builder /src/packages.txt packages.txt
+
+RUN dnf install -y $(cat packages.txt) && \
     rpm -ivh /wkhtmltopdf.rpm && \
     dnf clean all && \
     rm /wkhtmltopdf.rpm && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    rm *.txt
 
 USER user
 

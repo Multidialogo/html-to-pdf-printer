@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      target: builder
+      target: develop
     ports:
       - "5000:5000"
     volumes:

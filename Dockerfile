@@ -1,4 +1,6 @@
-FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9 AS builder
+ARG BASE_IMAGE=823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9
+
+FROM $BASE_IMAGE AS builder
 
 ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"
 ARG WKHTMLTOPDF_PLATFORM="x86_64"
@@ -7,16 +9,40 @@ ADD --checksum=$WKHTMLTOPDF_SHA256 \
     "https://github.com/wkhtmltopdf/packaging/releases/download/$WKHTMLTOPDF_VERSION/wkhtmltox-$WKHTMLTOPDF_VERSION.almalinux9.$WKHTMLTOPDF_PLATFORM.rpm" \
     /wkhtmltopdf.rpm
 
+COPY ./src/requirements.txt requirements.txt
+
+RUN dnf install -y ca-certificates \
+                   fontconfig \
+                   freetype \
+                   glibc \
+                   libjpeg \
+                   libpng \
+                   libstdc++ \
+                   libX11 \
+                   libXext \
+                   libXrender \
+                   openssl \
+                   xorg-x11-fonts-75dpi \
+                   xorg-x11-fonts-Type1 \
+                   zlib && \
+    rpm -ivh /wkhtmltopdf.rpm && \
+    pip install -r requirements.txt
+
+
+FROM $BASE_IMAGE AS develop
+
 WORKDIR /src
 COPY src .
 COPY nginx.conf /etc/nginx/nginx.conf
 
+COPY --from=builder /etc /etc
+COPY --from=builder /lib64 /lib64
+COPY --from=builder /sbin /sbin
+COPY --from=builder /usr /usr
+
 ENV EFS_MOUNT_PATH=/test
 
-RUN dnf install -y $(cat packages.txt) && \
-    rpm -ivh /wkhtmltopdf.rpm && \
-    dnf clean all && \
-    pip install -r requirements.txt -r requirements.dev.txt && \
+RUN pip install -r requirements.dev.txt && \
     mkdir -p "$EFS_MOUNT_PATH" && \
     chown -R user:user "$EFS_MOUNT_PATH"
 
@@ -26,21 +52,18 @@ RUN python3 -m unittest
 
 CMD ["sh", "-c", "nginx && gunicorn -b 0.0.0.0:8888 app:app"]
 
-FROM 823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-python:2023.6.20241031.0-1.26-3.9 AS production
 
-COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /wkhtmltopdf.rpm /wkhtmltopdf.rpm
+FROM $BASE_IMAGE AS production
+
+COPY --from=develop /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=builder /etc /etc
+COPY --from=builder /lib64 /lib64
+COPY --from=builder /sbin /sbin
+COPY --from=builder /usr /usr
 
 WORKDIR /src
-COPY --from=builder /src/app.py app.py
-COPY --from=builder /src/requirements.txt requirements.txt
-COPY --from=builder /src/packages.txt packages.txt
-
-RUN dnf install -y $(cat packages.txt) && \
-    rpm -ivh /wkhtmltopdf.rpm && \
-    dnf clean all && \
-    pip install -r requirements.txt && \
-    rm /wkhtmltopdf.rpm *.txt
+COPY --from=develop /src/app.py app.py
 
 USER user
 

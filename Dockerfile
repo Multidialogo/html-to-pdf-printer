@@ -9,7 +9,8 @@ ADD --checksum=$WKHTMLTOPDF_SHA256 \
     "https://github.com/wkhtmltopdf/packaging/releases/download/$WKHTMLTOPDF_VERSION/wkhtmltox-$WKHTMLTOPDF_VERSION.almalinux9.$WKHTMLTOPDF_PLATFORM.rpm" \
     /wkhtmltopdf.rpm
 
-COPY ./src/requirements.txt requirements.txt
+COPY src/requirements.txt requirements.txt
+COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN dnf install -y ca-certificates \
                    fontconfig \
@@ -33,7 +34,6 @@ FROM $BASE_IMAGE AS develop
 
 WORKDIR /src
 COPY src .
-COPY nginx.conf /etc/nginx/nginx.conf
 
 COPY --from=builder /etc /etc
 COPY --from=builder /lib64 /lib64
@@ -53,9 +53,7 @@ RUN python3 -m unittest
 CMD ["sh", "-c", "nginx && gunicorn -b 0.0.0.0:8888 app:app"]
 
 
-FROM $BASE_IMAGE AS production
-
-COPY --from=develop /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+FROM $BASE_IMAGE
 
 COPY --from=builder /etc /etc
 COPY --from=builder /lib64 /lib64

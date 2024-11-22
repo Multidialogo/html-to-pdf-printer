@@ -50,8 +50,6 @@ USER user
 
 RUN python3 -m unittest
 
-CMD ["sh", "-c", "nginx && gunicorn -b 0.0.0.0:8888 app:app"]
-
 
 FROM $BASE_IMAGE
 

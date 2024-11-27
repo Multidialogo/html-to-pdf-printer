@@ -24,42 +24,16 @@ phases:
       - docker build . -t "${SERVICE_NAME}-${ENVIRONMENT}"
       - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${IMAGE_URI}:latest"
       - docker tag "${SERVICE_NAME}-${ENVIRONMENT}:latest" "${IMAGE_URI}:${EPOCH_TAG}"
-      - docker push "${IMAGE_URI}" --all-tags
-      - OLD_TASK_DEFINITION_ARN=$(aws ssm get-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --query "Parameter.Value" --output text)
-      - echo "Actual task definition is ${OLD_TASK_DEFINITION_ARN}"
-      - |
-        aws cloudformation update-stack --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
-        --parameters ParameterKey=ImageTag,ParameterValue=${EPOCH_TAG} \
-        ParameterKey=Cpu,UsePreviousValue=true \
-        ParameterKey=Memory,UsePreviousValue=true \
-        ParameterKey=ContainerName,UsePreviousValue=true \
-        ParameterKey=ContainerPort,UsePreviousValue=true \
-        ParameterKey=Environment,UsePreviousValue=true \
-        ParameterKey=EFSMountPath,UsePreviousValue=true \
-        ParameterKey=Registry,UsePreviousValue=true \
-        ParameterKey=ServiceName,UsePreviousValue=true \
-        ParameterKey=ImageName,UsePreviousValue=true \
-        ParameterKey=EFSFileSystemId,UsePreviousValue=true \
-        --capabilities CAPABILITY_IAM \
-        --use-previous-template
-      - aws cloudformation wait stack-update-complete --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition
-      - |
-        NEW_TASK_DEFINITION_ARN=$(aws cloudformation describe-stack-resources \
-        --stack-name ${ENVIRONMENT}-${SERVICE_NAME}-task-definition \
-        --logical-resource-id TaskDefinition \
-        --query StackResources[].PhysicalResourceId --output text)
-      - aws ecs update-service --cluster "${ENVIRONMENT}" --service "${SERVICE_NAME}" --task-definition "${NEW_TASK_DEFINITION_ARN}"
-      - aws ecs wait services-stable --cluster "${ENVIRONMENT}" --services "${SERVICE_NAME}"
   post_build:
     on-failure: ABORT
     commands:
+      - docker push "${IMAGE_URI}" --all-tags
       - |
-        if [ ${CODEBUILD_BUILD_SUCCEEDING} -eq 0 ]; then
-          echo "Build not succeeded, maintaining old task definition in ssm."
-          exit 1
-        fi
-      - |
-        if [ ${CODEBUILD_BUILD_SUCCEEDING} -eq 1 ]; then
-          echo "Build succeeded, updating task definition in ssm."
-          aws ssm put-parameter --name "/ecs/task-definitions/${SERVICE_NAME}/${ENVIRONMENT}/arn" --value "${NEW_TASK_DEFINITION_ARN}" --overwrite
-        fi
+        imagedefinitions=$(jq -n \
+          --arg container_name ${SERVICE_NAME} \
+          --arg image "${IMAGE_URI}:${EPOCH_TAG}" \
+          '[{"name":$container_name},"imageUri":$image]'
+        )
+#      - printf '[{"name":"hello-world","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files: imagedefinitions.json

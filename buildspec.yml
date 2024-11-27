@@ -32,8 +32,9 @@ phases:
         imagedefinitions=$(jq -n \
           --arg container_name ${SERVICE_NAME} \
           --arg image "${IMAGE_URI}:${EPOCH_TAG}" \
-          '[{"name":$container_name},"imageUri":$image]'
+          '[{"name":$container_name,"imageUri":$image}]'
         )
+      - echo $imagedefinitions >> imagedefinitions.json
 #      - printf '[{"name":"hello-world","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
   files: imagedefinitions.json

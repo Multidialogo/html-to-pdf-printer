@@ -35,6 +35,5 @@ phases:
           '[{"name":$container_name,"imageUri":$image}]'
         )
       - echo $imagedefinitions >> imagedefinitions.json
-#      - printf '[{"name":"hello-world","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
   files: imagedefinitions.json

@@ -1,7 +1,8 @@
-from datetime import datetime
+import shutil
+from datetime import datetime, timedelta
 from hashlib import md5
 from logging import basicConfig, getLogger, INFO
-from os import path, environ, makedirs
+from os import path, environ, makedirs, listdir
 from urllib.parse import urlparse
 
 import pdfkit
@@ -21,6 +22,35 @@ def hello():
 
 @app.route('/download', methods=['POST'])
 def convert():
+    efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
+
+    # Removing the old files older than 30 days.
+    cutoff_date = datetime.now() - timedelta(days=30)
+    for service in listdir(efs_mount_path):
+        service_path = path.join(efs_mount_path, service)
+        if path.isdir(service_path):
+            for year in listdir(service_path):
+                year_path = path.join(service_path, year)
+
+                if path.isdir(year_path):
+                    if int(year) < cutoff_date.year:
+                        delete_directory(year_path)
+                    else:
+                        for month in listdir(year_path):
+                            month_path = path.join(year_path, month)
+
+                            if path.isdir(month_path):
+                                if int(month) < cutoff_date.month:
+                                    delete_directory(month_path)
+                                else:
+                                    for day in listdir(month_path):
+                                        day_path = path.join(month_path, day)
+
+                                        if path.isdir(day_path):
+                                            if int(day) < cutoff_date.day:
+                                                delete_directory(day_path)
+
+    # Process the request.
     content_type = request.headers.get('content-type')
 
     if not content_type or content_type != 'application/json':
@@ -83,7 +113,6 @@ def convert():
     except Exception as e:
         return format_error_message("Internal Server Error", f"error generating PDF: {e}", body, 500)
 
-    efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
     service_path = path.join(efs_mount_path, service_dir)
 
     file_name = md5(pdf_bytes, usedforsecurity=False).hexdigest()
@@ -135,3 +164,11 @@ def format_error_message(title: str, detail: str, payload: dict = None, code: in
         logger.error(log_msg)
 
     return {"error": {"title": title, "detail": detail}}, code
+
+
+def delete_directory(dir_path: str):
+    try:
+        shutil.rmtree(dir_path)
+        logger.info(f"The directory '{dir_path}' was removed successfully.")
+    except Exception as e:
+        logger.warning(f"Error while deleting the directory '{dir_path}': {e}.")

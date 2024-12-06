@@ -1,4 +1,9 @@
+import random
+import string
 import unittest
+from datetime import datetime, timedelta
+from hashlib import md5
+from os import path, environ, makedirs
 from unittest.mock import mock_open, patch
 
 import pymupdf
@@ -22,6 +27,8 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
             'Accept': 'application/json',
             'X-Caller-Service': 'MULTIDIALOGO-API',
         }
+        efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
+        self.service_path = f"{efs_mount_path}{self.headers['X-Caller-Service'].lower()}"
 
     def test_health_check(self):
         health_check_route = '/health-check'
@@ -185,13 +192,67 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         expected_pdf_text = 'Hello, PDF!\nThis is a subheading with inline style\nThis is a paragraph.\n'
         generated_pdf_text = ''
         shared_file_path = response.json['data']['attributes']['sharedFilePath']
-        with pymupdf.open(f"/test/multidialogo-api/{shared_file_path}") as pdf:
+        with pymupdf.open(f'{self.service_path}/{shared_file_path}') as pdf:
             for page in pdf:
                 generated_pdf_text += page.get_text()
         self.assertEqual(expected_pdf_text, generated_pdf_text)
+
+    def test_pdf_deleting(self):
+        today_date = datetime.now()
+        cutoff_date = today_date - timedelta(days=30)
+
+        old_year_date = f'{cutoff_date.year - 1}/{cutoff_date.month}/{cutoff_date.day}'
+        old_year_date = self.create_random_pdf(old_year_date)
+        self.assertTrue(path.isfile(old_year_date))
+
+        old_month_date = f'{cutoff_date.year}/{cutoff_date.month - 1}/{cutoff_date.day}'
+        old_month_date = self.create_random_pdf(old_month_date)
+        self.assertTrue(path.isfile(old_month_date))
+
+        old_day_date = f'{cutoff_date.year}/{cutoff_date.month}/{cutoff_date.day - 1}'
+        old_day_date = self.create_random_pdf(old_day_date)
+        self.assertTrue(path.isfile(old_day_date))
+
+        self.app.post(
+            self.route,
+            headers=self.headers,
+            json={'data': {'attributes': {'htmlUrl': 'https://www.google.it'}}}
+        )
+
+        self.assertFalse(path.isfile(old_year_date))
+        self.assertFalse(path.isfile(old_month_date))
+        self.assertFalse(path.isfile(old_day_date))
+
+    @patch('shutil.rmtree')
+    def test_error_during_pdf_deleting(self, mock_rmtree):
+        today_date = datetime.now()
+        cutoff_date = today_date - timedelta(days=30)
+
+        old_year_date = f'{cutoff_date.year - 1}/{cutoff_date.month}/{cutoff_date.day}'
+        old_year_date = self.create_random_pdf(old_year_date)
+        self.assertTrue(path.isfile(old_year_date))
+
+        mock_rmtree.side_effect = OSError('delete error')
+        self.app.post(
+            self.route,
+            headers=self.headers,
+            json={'data': {'attributes': {'htmlUrl': 'https://www.google.it'}}}
+        )
+        self.assertTrue(path.isfile(old_year_date))
 
     def assert_errors(self, response: Response, error_title: str, error_detail: str, error_code: int = 400):
         self.assertEqual(error_code, response.status_code)
         error = response.json['error']
         self.assertEqual(error_title, error['title'])
         self.assertEqual(error_detail, error['detail'])
+
+    def create_random_pdf(self, date_path: str, length: int = 30):
+        letters = string.ascii_letters + string.digits + string.punctuation
+        contents = ''.join(random.choice(letters) for _ in range(length))
+        file_name = md5(contents.encode('utf-8'), usedforsecurity=False).hexdigest()
+        random_path = f'{self.service_path}/{date_path}/{file_name[0]}'
+        makedirs(random_path)
+        random_file_path = f'{random_path}/{file_name}.pdf'
+        with open(random_file_path, 'w') as file:
+            file.write(contents)
+        return random_file_path

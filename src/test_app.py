@@ -139,11 +139,11 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         self.assert_errors(
             response,
             'Internal Server Error',
-            'error generating PDF: wkhtmltopdf reported an error:\nExit with code 1 due to network error: HostNotFoundError\n',
+            'error while setting content or navigating: Page.goto: net::ERR_NAME_NOT_RESOLVED at http://sito.molto/bello\nCall log:\n  - navigating to "http://sito.molto/bello", waiting until "load"\n',
             500
         )
 
-    @patch('builtins.open', new_callable=mock_open)
+    @patch('app.open', new_callable=mock_open)
     def test_file_write_exception(self, mock_file):
         mock_file().write.side_effect = IOError('write error')
         response = self.app.post(

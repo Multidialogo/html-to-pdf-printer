@@ -2,32 +2,19 @@ ARG BASE_IMAGE=823598220965.dkr.ecr.eu-west-1.amazonaws.com/amazonlinux-nginx-py
 
 FROM $BASE_IMAGE AS builder
 
-ARG WKHTMLTOPDF_VERSION="0.12.6.1-3"
-ARG WKHTMLTOPDF_PLATFORM="x86_64"
-ARG WKHTMLTOPDF_SHA256="sha256:357a587c82f1c8a5faf78cebb0a387f780ca51db81d9d8350af27e0bc603524b"
-ADD --checksum=$WKHTMLTOPDF_SHA256 \
-    "https://github.com/wkhtmltopdf/packaging/releases/download/$WKHTMLTOPDF_VERSION/wkhtmltox-$WKHTMLTOPDF_VERSION.almalinux9.$WKHTMLTOPDF_PLATFORM.rpm" \
-    /wkhtmltopdf.rpm
-
 COPY src/requirements.txt requirements.txt
 COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN dnf install -y ca-certificates \
-                   fontconfig \
-                   freetype \
-                   glibc \
-                   libjpeg \
-                   libpng \
-                   libstdc++ \
-                   libX11 \
-                   libXext \
-                   libXrender \
-                   openssl \
-                   xorg-x11-fonts-75dpi \
-                   xorg-x11-fonts-Type1 \
-                   zlib && \
-    rpm -ivh /wkhtmltopdf.rpm && \
-    pip install -r requirements.txt
+RUN dnf install -y at-spi2-atk \
+                   libXcomposite \
+                   libXdamage \
+                   libXrandr \
+                   libgbm \
+                   cairo \
+                   alsa-lib \
+                   nss && \
+    pip install -r requirements.txt && \
+    python3 -m playwright install --only-shell
 
 
 FROM $BASE_IMAGE AS develop
@@ -39,6 +26,7 @@ COPY --from=builder /etc /etc
 COPY --from=builder /lib64 /lib64
 COPY --from=builder /sbin /sbin
 COPY --from=builder /usr /usr
+COPY --from=builder /root/.cache /home/user/.cache
 
 ENV EFS_MOUNT_PATH=/test
 
@@ -57,6 +45,7 @@ COPY --from=builder /etc /etc
 COPY --from=builder /lib64 /lib64
 COPY --from=builder /sbin /sbin
 COPY --from=builder /usr /usr
+COPY --from=builder /root/.cache /home/user/.cache
 
 WORKDIR /src
 COPY --from=develop /src/app.py app.py

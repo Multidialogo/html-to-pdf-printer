@@ -5,12 +5,11 @@ from logging import basicConfig, getLogger, INFO
 from os import path, environ, makedirs, listdir
 from urllib.parse import urlparse
 
-import pdfkit
 from flask import Flask, request
+from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
-pdfkit_config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
 basicConfig(level=INFO)
 logger = getLogger(__name__)
 
@@ -105,13 +104,27 @@ def convert():
         return format_error_message('URL Content', f"'data.attributes.htmlUrl' contain invalid URL", body, 422)
 
     pdf_bytes = b''
-    try:
-        if html_body:
-            pdf_bytes = pdfkit.from_string(html_body, False, configuration=pdfkit_config)
-        elif html_url:
-            pdf_bytes = pdfkit.from_url(html_url, False, configuration=pdfkit_config)
-    except Exception as e:
-        return format_error_message("Internal Server Error", f"error generating PDF: {e}", body, 500)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+
+        try:
+            if html_body:
+                page.set_content(html_body)
+            elif html_url:
+                page.goto(html_url)
+        except Exception as e:
+            return format_error_message("Internal Server Error", f"error while setting content or navigating: {e}",
+                                        body, 500)
+
+        page.evaluate('() => document.fonts.ready')
+
+        try:
+            pdf_bytes = page.pdf(format='A4', print_background=True)
+        except Exception as e:
+            return format_error_message("Internal Server Error", f"error generating PDF: {e}", body, 500)
+
+        browser.close()
 
     service_path = path.join(efs_mount_path, service_dir)
 

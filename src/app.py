@@ -32,16 +32,18 @@ def convert():
                 year_path = path.join(service_path, year)
 
                 if path.isdir(year_path):
-                    if int(year) < cutoff_date.year:
+                    int_year = int(year)
+                    if int_year < cutoff_date.year:
                         delete_directory(year_path)
-                    else:
+                    elif int_year == cutoff_date.year:
                         for month in listdir(year_path):
                             month_path = path.join(year_path, month)
 
                             if path.isdir(month_path):
-                                if int(month) < cutoff_date.month:
+                                int_month = int(month)
+                                if int_month < cutoff_date.month:
                                     delete_directory(month_path)
-                                else:
+                                elif int_month == cutoff_date.month:
                                     for day in listdir(month_path):
                                         day_path = path.join(month_path, day)
 

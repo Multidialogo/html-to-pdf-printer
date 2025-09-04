@@ -213,6 +213,10 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         old_day_date = self.create_random_pdf(old_day_date)
         self.assertTrue(path.isfile(old_day_date))
 
+        actual_date_file_path = f'{today_date.year}/{today_date.month}/{today_date.day}'
+        actual_date_file_path = self.create_random_pdf(actual_date_file_path)
+        self.assertTrue(path.isfile(actual_date_file_path))
+
         self.app.post(
             self.route,
             headers=self.headers,
@@ -222,6 +226,7 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         self.assertFalse(path.isfile(old_year_date))
         self.assertFalse(path.isfile(old_month_date))
         self.assertFalse(path.isfile(old_day_date))
+        self.assertTrue(path.isfile(actual_date_file_path))
 
     @patch('shutil.rmtree')
     def test_error_during_pdf_deleting(self, mock_rmtree):

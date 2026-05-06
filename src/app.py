@@ -1,8 +1,12 @@
+import atexit
+import os
 import shutil
+import time
 from datetime import datetime, timedelta
 from hashlib import md5
 from logging import basicConfig, getLogger, INFO
 from os import path, environ, makedirs, listdir
+from threading import Lock
 from urllib.parse import urlparse
 
 from flask import Flask, request
@@ -13,6 +17,14 @@ app = Flask(__name__)
 basicConfig(level=INFO)
 logger = getLogger(__name__)
 
+DEFAULT_CLEANUP_INTERVAL_SECONDS = 21600
+DEFAULT_CLEANUP_LOCK_TTL_SECONDS = 1800
+
+last_cleanup_attempt_ts = 0.0
+runtime_lock = Lock()
+playwright_instance = None
+browser_instance = None
+
 
 @app.route('/health-check', methods=['GET'])
 def hello():
@@ -22,34 +34,7 @@ def hello():
 @app.route('/download', methods=['POST'])
 def convert():
     efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
-
-    # Removing the old files older than 30 days.
-    cutoff_date = datetime.now() - timedelta(days=30)
-    for service in listdir(efs_mount_path):
-        service_path = path.join(efs_mount_path, service)
-        if path.isdir(service_path):
-            for year in listdir(service_path):
-                year_path = path.join(service_path, year)
-
-                if path.isdir(year_path):
-                    int_year = int(year)
-                    if int_year < cutoff_date.year:
-                        delete_directory(year_path)
-                    elif int_year == cutoff_date.year:
-                        for month in listdir(year_path):
-                            month_path = path.join(year_path, month)
-
-                            if path.isdir(month_path):
-                                int_month = int(month)
-                                if int_month < cutoff_date.month:
-                                    delete_directory(month_path)
-                                elif int_month == cutoff_date.month:
-                                    for day in listdir(month_path):
-                                        day_path = path.join(month_path, day)
-
-                                        if path.isdir(day_path):
-                                            if int(day) < cutoff_date.day:
-                                                delete_directory(day_path)
+    try_cleanup_if_due(efs_mount_path)
 
     # Process the request.
     content_type = request.headers.get('content-type')
@@ -106,9 +91,11 @@ def convert():
         return format_error_message('URL Content', f"'data.attributes.htmlUrl' contain invalid URL", body, 422)
 
     pdf_bytes = b''
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+    browser_context = None
+    try:
+        browser = get_browser()
+        browser_context = browser.new_context()
+        page = browser_context.new_page()
 
         try:
             if html_body:
@@ -119,14 +106,19 @@ def convert():
             return format_error_message("Internal Server Error", f"error while setting content or navigating: {e}",
                                         body, 500)
 
-        page.evaluate('() => document.fonts.ready')
-
         try:
+            page.evaluate('() => document.fonts.ready')
             pdf_bytes = page.pdf(format='A4', print_background=True)
         except Exception as e:
             return format_error_message("Internal Server Error", f"error generating PDF: {e}", body, 500)
-
-        browser.close()
+    except Exception as e:
+        return format_error_message("Internal Server Error", f"error initializing browser: {e}", body, 500)
+    finally:
+        if browser_context:
+            try:
+                browser_context.close()
+            except Exception as e:
+                logger.warning(f"error while closing browser context: {e}")
 
     service_path = path.join(efs_mount_path, service_dir)
 
@@ -187,3 +179,170 @@ def delete_directory(dir_path: str):
         logger.info(f"The directory '{dir_path}' was removed successfully.")
     except Exception as e:
         logger.warning(f"Error while deleting the directory '{dir_path}': {e}.")
+
+
+def get_int_env(name: str, default: int) -> int:
+    value = environ.get(name)
+
+    if value is None:
+        return default
+
+    try:
+        parsed_value = int(value)
+        if parsed_value < 0:
+            raise ValueError()
+        return parsed_value
+    except ValueError:
+        logger.warning(f"Invalid value '{value}' for env '{name}', using default '{default}'.")
+        return default
+
+
+def try_cleanup_if_due(efs_mount_path: str):
+    global last_cleanup_attempt_ts
+
+    interval_seconds = get_int_env('CLEANUP_INTERVAL_SECONDS', DEFAULT_CLEANUP_INTERVAL_SECONDS)
+    now_ts = time.time()
+
+    with runtime_lock:
+        if interval_seconds > 0 and (now_ts - last_cleanup_attempt_ts) < interval_seconds:
+            return
+        # Update attempt timestamp also for skipped/failed cleanups to avoid aggressive retries.
+        last_cleanup_attempt_ts = now_ts
+
+    lock_file_path = path.join(efs_mount_path, '.cleanup.lock')
+    lock_ttl_seconds = get_int_env('CLEANUP_LOCK_TTL_SECONDS', DEFAULT_CLEANUP_LOCK_TTL_SECONDS)
+    lock_acquired = False
+
+    try:
+        lock_acquired = acquire_cleanup_lock(lock_file_path, lock_ttl_seconds)
+        if not lock_acquired:
+            return
+
+        cleanup_old_files(efs_mount_path)
+    except Exception as e:
+        logger.warning(f"Error while running scheduled cleanup: {e}")
+    finally:
+        if lock_acquired:
+            release_cleanup_lock(lock_file_path)
+
+
+def cleanup_old_files(efs_mount_path: str):
+    cutoff_date = datetime.now() - timedelta(days=30)
+    for service in listdir(efs_mount_path):
+        service_path = path.join(efs_mount_path, service)
+        if path.isdir(service_path):
+            for year in listdir(service_path):
+                if not year.isdigit():
+                    continue
+
+                year_path = path.join(service_path, year)
+
+                if path.isdir(year_path):
+                    int_year = int(year)
+                    if int_year < cutoff_date.year:
+                        delete_directory(year_path)
+                    elif int_year == cutoff_date.year:
+                        for month in listdir(year_path):
+                            if not month.isdigit():
+                                continue
+
+                            month_path = path.join(year_path, month)
+
+                            if path.isdir(month_path):
+                                int_month = int(month)
+                                if int_month < cutoff_date.month:
+                                    delete_directory(month_path)
+                                elif int_month == cutoff_date.month:
+                                    for day in listdir(month_path):
+                                        if not day.isdigit():
+                                            continue
+
+                                        day_path = path.join(month_path, day)
+
+                                        if path.isdir(day_path):
+                                            if int(day) < cutoff_date.day:
+                                                delete_directory(day_path)
+
+
+def acquire_cleanup_lock(lock_file_path: str, lock_ttl_seconds: int) -> bool:
+    ensure_stale_lock_is_removed(lock_file_path, lock_ttl_seconds)
+
+    try:
+        fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(fd, 'w') as lock_file:
+            lock_file.write(str(int(time.time())))
+        return True
+    except FileExistsError:
+        return False
+    except OSError as e:
+        logger.warning(f"Error while acquiring cleanup lock '{lock_file_path}': {e}.")
+        return False
+
+
+def ensure_stale_lock_is_removed(lock_file_path: str, lock_ttl_seconds: int):
+    if lock_ttl_seconds <= 0:
+        return
+
+    try:
+        lock_age_seconds = time.time() - path.getmtime(lock_file_path)
+    except FileNotFoundError:
+        return
+    except OSError as e:
+        logger.warning(f"Error while checking cleanup lock age '{lock_file_path}': {e}.")
+        return
+
+    if lock_age_seconds <= lock_ttl_seconds:
+        return
+
+    try:
+        os.remove(lock_file_path)
+        logger.info(f"Removed stale cleanup lock '{lock_file_path}'.")
+    except FileNotFoundError:
+        return
+    except OSError as e:
+        logger.warning(f"Error while removing stale cleanup lock '{lock_file_path}': {e}.")
+
+
+def release_cleanup_lock(lock_file_path: str):
+    try:
+        os.remove(lock_file_path)
+    except FileNotFoundError:
+        return
+    except OSError as e:
+        logger.warning(f"Error while releasing cleanup lock '{lock_file_path}': {e}.")
+
+
+def get_browser():
+    global playwright_instance
+    global browser_instance
+
+    with runtime_lock:
+        if browser_instance:
+            return browser_instance
+
+        playwright_instance = sync_playwright().start()
+        browser_instance = playwright_instance.chromium.launch(headless=True)
+        return browser_instance
+
+
+def close_browser():
+    global playwright_instance
+    global browser_instance
+
+    with runtime_lock:
+        if browser_instance:
+            try:
+                browser_instance.close()
+            except Exception as e:
+                logger.warning(f"Error while closing browser instance: {e}.")
+            browser_instance = None
+
+        if playwright_instance:
+            try:
+                playwright_instance.stop()
+            except Exception as e:
+                logger.warning(f"Error while stopping playwright instance: {e}.")
+            playwright_instance = None
+
+
+atexit.register(close_browser)

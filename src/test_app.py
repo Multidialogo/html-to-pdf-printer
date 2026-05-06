@@ -3,12 +3,13 @@ import string
 import unittest
 from datetime import datetime, timedelta
 from hashlib import md5
-from os import path, environ, makedirs
+from os import path, environ, makedirs, remove
 from unittest.mock import mock_open, patch
 
 import pymupdf
 from flask import Response
 
+import app as app_module
 from app import app, logger
 
 
@@ -27,8 +28,21 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
             'Accept': 'application/json',
             'X-Caller-Service': 'MULTIDIALOGO-API',
         }
+        environ['CLEANUP_INTERVAL_SECONDS'] = '0'
+        environ['CLEANUP_LOCK_TTL_SECONDS'] = '1800'
+        app_module.last_cleanup_attempt_ts = 0.0
+        app_module.close_browser()
+
         efs_mount_path = environ.get('EFS_MOUNT_PATH').rstrip('/') + '/'
+        self.cleanup_lock_path = path.join(efs_mount_path, '.cleanup.lock')
+        if path.exists(self.cleanup_lock_path):
+            remove(self.cleanup_lock_path)
         self.service_path = f"{efs_mount_path}{self.headers['X-Caller-Service'].lower()}"
+
+    def tearDown(self):
+        app_module.close_browser()
+        if path.exists(self.cleanup_lock_path):
+            remove(self.cleanup_lock_path)
 
     def test_health_check(self):
         health_check_route = '/health-check'

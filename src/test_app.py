@@ -1,5 +1,6 @@
 import random
 import string
+import time
 import unittest
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -40,7 +41,15 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
         self.service_path = f"{efs_mount_path}{self.headers['X-Caller-Service'].lower()}"
 
     def tearDown(self):
-        app_module.close_browser()
+        if app_module.browser_instance:
+            logger.disabled = False
+            with self.assertLogs(logger, level='DEBUG') as log:
+                logger.debug('tearDown close_browser start')
+                app_module.close_browser()
+            self.assertFalse(any('Error while closing browser instance' in msg for msg in log.output))
+            self.assertFalse(any('Error while stopping playwright instance' in msg for msg in log.output))
+        else:
+            app_module.close_browser()
         if path.exists(self.cleanup_lock_path):
             remove(self.cleanup_lock_path)
 
@@ -258,6 +267,61 @@ class PDFGeneratorAPITestCase(unittest.TestCase):
             json={'data': {'attributes': {'htmlUrl': 'https://www.google.it'}}}
         )
         self.assertTrue(path.isfile(old_year_date))
+
+    def test_browser_restart_when_max_age_exceeded(self):
+        environ['BROWSER_MAX_AGE_SECONDS'] = '86400'
+        html_content = '<html><body><p>restart test</p></body></html>'
+        payload = {'data': {'attributes': {'htmlBody': html_content}}}
+
+        response = self.app.post(self.route, headers=self.headers, json=payload)
+        self.assertEqual(200, response.status_code)
+
+        started_at_before = app_module.browser_started_at
+        self.assertGreater(started_at_before, 0.0)
+
+        app_module.browser_started_at = time.time() - 86401
+
+        logger.disabled = False
+        with self.assertLogs(logger, level='INFO') as log:
+            response = self.app.post(self.route, headers=self.headers, json=payload)
+            self.assertEqual(200, response.status_code)
+
+        self.assertGreater(app_module.browser_started_at, started_at_before)
+        self.assertTrue(any('Browser max age reached' in msg for msg in log.output))
+        self.assertFalse(any('Error while closing browser instance' in msg for msg in log.output))
+        self.assertFalse(any('Error while stopping playwright instance' in msg for msg in log.output))
+
+    def test_browser_no_restart_when_max_age_not_exceeded(self):
+        environ['BROWSER_MAX_AGE_SECONDS'] = '86400'
+        html_content = '<html><body><p>no restart test</p></body></html>'
+        payload = {'data': {'attributes': {'htmlBody': html_content}}}
+
+        response = self.app.post(self.route, headers=self.headers, json=payload)
+        self.assertEqual(200, response.status_code)
+
+        started_at_before = app_module.browser_started_at
+        self.assertGreater(started_at_before, 0.0)
+
+        response = self.app.post(self.route, headers=self.headers, json=payload)
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(app_module.browser_started_at, started_at_before)
+
+    def test_browser_restart_disabled_when_max_age_zero(self):
+        environ['BROWSER_MAX_AGE_SECONDS'] = '0'
+        html_content = '<html><body><p>disabled restart test</p></body></html>'
+        payload = {'data': {'attributes': {'htmlBody': html_content}}}
+
+        response = self.app.post(self.route, headers=self.headers, json=payload)
+        self.assertEqual(200, response.status_code)
+
+        forced_old_ts = time.time() - 999999
+        app_module.browser_started_at = forced_old_ts
+
+        response = self.app.post(self.route, headers=self.headers, json=payload)
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(app_module.browser_started_at, forced_old_ts)
 
     def assert_errors(self, response: Response, error_title: str, error_detail: str, error_code: int = 400):
         self.assertEqual(error_code, response.status_code)

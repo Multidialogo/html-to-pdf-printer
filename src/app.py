@@ -19,11 +19,13 @@ logger = getLogger(__name__)
 
 DEFAULT_CLEANUP_INTERVAL_SECONDS = 21600
 DEFAULT_CLEANUP_LOCK_TTL_SECONDS = 1800
+DEFAULT_BROWSER_MAX_AGE_SECONDS = 86400
 
 last_cleanup_attempt_ts = 0.0
 runtime_lock = Lock()
 playwright_instance = None
 browser_instance = None
+browser_started_at = 0.0
 
 
 @app.route('/health-check', methods=['GET'])
@@ -315,34 +317,48 @@ def release_cleanup_lock(lock_file_path: str):
 def get_browser():
     global playwright_instance
     global browser_instance
+    global browser_started_at
 
     with runtime_lock:
         if browser_instance:
-            return browser_instance
+            max_age = get_int_env('BROWSER_MAX_AGE_SECONDS', DEFAULT_BROWSER_MAX_AGE_SECONDS)
+            if max_age > 0 and (time.time() - browser_started_at) >= max_age:
+                logger.info("Browser max age reached, restarting.")
+                _close_browser_unlocked()
+            else:
+                return browser_instance
 
         playwright_instance = sync_playwright().start()
         browser_instance = playwright_instance.chromium.launch(headless=True)
+        browser_started_at = time.time()
         return browser_instance
 
 
 def close_browser():
+    with runtime_lock:
+        _close_browser_unlocked()
+
+
+def _close_browser_unlocked():
     global playwright_instance
     global browser_instance
+    global browser_started_at
 
-    with runtime_lock:
-        if browser_instance:
-            try:
-                browser_instance.close()
-            except Exception as e:
-                logger.warning(f"Error while closing browser instance: {e}.")
-            browser_instance = None
+    if browser_instance:
+        try:
+            browser_instance.close()
+        except Exception as e:
+            logger.warning(f"Error while closing browser instance: {e}.")
+        browser_instance = None
 
-        if playwright_instance:
-            try:
-                playwright_instance.stop()
-            except Exception as e:
-                logger.warning(f"Error while stopping playwright instance: {e}.")
-            playwright_instance = None
+    if playwright_instance:
+        try:
+            playwright_instance.stop()
+        except Exception as e:
+            logger.warning(f"Error while stopping playwright instance: {e}.")
+        playwright_instance = None
+
+    browser_started_at = 0.0
 
 
 atexit.register(close_browser)
